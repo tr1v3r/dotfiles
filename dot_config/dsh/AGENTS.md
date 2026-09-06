@@ -176,7 +176,9 @@ settings.yaml，否则 TUI 冲突复发。
   offset-0 除外——那是命令浮层领地）+ 行中浮层（**只列 skill**，Enter/Tab 只替换
   该 token 不发送）+ 已知 skill 名的 accent 高亮（`rowHighlightPieces` 三段式，
   选区/caret 反显优先）。CommandSuggestions.js/.d.ts 加了可选 `title` prop
-  （浮层标题显示「技能」）。上游提案 <discussion 链接待补>。升级 TUI 重生成
+  （浮层标题显示「技能」）。上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/780 。
+  ⚠️ 顺带发现 #777（vimKeys 提案）正文是坏的——上次会话把 `--body-file`
+  误用成字面量 `@/tmp/discussion-body.md` 存了进去，待补正文。升级 TUI 重生成
   patch 时**两个特性都要重做**（vimKeys + 本特性，改 5 个文件：
   PromptInput.js、CommandSuggestions.js/.d.ts、dsh-adapter/plugin.js、
   utils/keymap.js）。
