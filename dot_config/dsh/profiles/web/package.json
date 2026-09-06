@@ -2,7 +2,6 @@
   "name": "dsh-profile-web",
   "private": true,
   "dependencies": {
-    "@dsh-plugin/dsh-code-review": "^0.3.2",
     "@linxin666/dsh-client-ui-git-graph": "0.3.16",
     "@linxin666/dsh-client-ui-skill-explorer": "0.3.16",
     "@linxin666/dsh-web-all": "0.3.16",
@@ -43,8 +42,7 @@
         "dsh-better-sidebar",
         "@linxin666/dsh-client-ui-skill-explorer",
         "dsh-context",
-        "@nanmicoder/dsh-agent-teams",
-        "@dsh-plugin/dsh-code-review"
+        "@nanmicoder/dsh-agent-teams"
       ]
     }
   }
