@@ -9,7 +9,7 @@ minimumReleaseAgeExclude:
   - dsh-builtin-browser@0.1.20
   - dshmarket@1.35.0 || 1.44.0
   - '@nanmicoder/dsh-agent-teams@0.1.16-rc.1'
-  - dsh-quote-followup@0.1.0
+  - dsh-quote-followup@0.1.1
 allowBuilds:
   electron: true
   node-pty: true
