@@ -11,6 +11,11 @@ DSH agent
   → firecrawl-mcp（stdio 子进程）
   → http://127.0.0.1:3002
   → Firecrawl Docker Compose
+
+DSH agent（web_search provider / read_page）
+  → @liustack/modsearch 引擎链（firecrawl 引擎）
+  → firecrawl.baseURL = http://127.0.0.1:3002
+  → Firecrawl Docker Compose
 ```
 
 `127.0.0.1:3002` 是 Firecrawl REST API，不是 MCP endpoint。DSH 不能直接连接
@@ -24,6 +29,7 @@ DSH agent
 | Firecrawl release | `v2.11.0` |
 | Firecrawl API | `http://127.0.0.1:3002` |
 | Firecrawl MCP | `firecrawl-mcp@3.24.0` |
+| modsearch 引擎 | `@liustack/modsearch@5.10.1`，`firecrawl.baseURL` 指向本地 |
 | API 认证 | 本地关闭，不需要云端 API key |
 | DSH profiles | `dsh-tui`、`headless`、`web` |
 
@@ -204,6 +210,53 @@ dsh --profile web --dump-config
 TUI 和 Web 已运行时建议重启，以确保模型请求拿到新的工具目录；Headless 每次调用都会
 重新加载 startup patch。
 
+## modsearch 引擎接入
+
+`@liustack/modsearch`（web profile 已装）把本地 Firecrawl 挂为搜索/抓取引擎链的第一跳，
+替代 Firecrawl Cloud 的 keyless 额度。它与 MCP 桥是**并行的两条消费者链**：MCP 提供
+`mcp__firecrawl__*` 工具，modsearch 接管 dsh 内置 `web_search` 的 provider 并新增
+`read_page`。
+
+### 配置
+
+配置在 `~/.modsearch/config.json`（全局，不分 profile；权限 0600）：
+
+```bash
+# modsearch CLI 随插件分发，无全局安装
+PKG=~/.config/dsh/profiles/web/node_modules/@liustack/modsearch
+node $PKG/dist/main.js config set firecrawl.baseURL http://127.0.0.1:3002
+```
+
+生效后的引擎链：**本地 Firecrawl → Antigravity CLI（`agy`）→ 内置 local 抓取器**。
+baseURL 覆盖官方端点后，云端 keyless 额度不再参与。dsh Web 的
+设置 → 插件配置 → ModSearch 卡片读写的是同一份文件。
+
+### 验证
+
+```bash
+# 1. 路由体检（不耗额度、不发请求）
+node $PKG/dist/main.js doctor   # firecrawl 应为 READY
+
+# 2. 实测搜索（强制 firecrawl 引擎）
+node $PKG/dist/main.js search -q "smoke test" -e firecrawl --max-results 3
+
+# 3. 取证请求落在本地实例
+docker logs firecrawl-api-1 --since 2m 2>&1 | grep searchController
+```
+
+步骤 2 返回 `"engine": "firecrawl", "status": "ok"`、步骤 3 日志出现
+`Searching for results` 即接线成功。
+
+### 已知折衷
+
+- 本地 Firecrawl 的搜索后端是 DuckDuckGo，结果质量以 DDG 为限；需要带引用的
+  综合答案可 `modsearch config set engine antigravity-cli` 切 `agy`。
+- 本地实例离线时 modsearch 自动 failover 到 `agy`/local，不影响 MCP 侧工具
+  （它们会直接报错）。
+- modsearch 的 SSRF 防护默认拒绝私网地址（针对抓取目标，不影响 baseURL 指向
+  本地）；如遇 VPN 把公网域名解析进保留网段，见其 troubleshooting 的
+  `allowPrivateNetwork`。
+
 ## 在 Agent 中使用
 
 注册后的常用工具名包括：
@@ -317,4 +370,6 @@ npm view firecrawl-mcp version
 ```
 
 升级后重新执行 REST API 冒烟测试和三份 DSH `--dump-config` 检查，再测试至少一次
-`mcp__firecrawl__firecrawl_search` 实际调用。
+`mcp__firecrawl__firecrawl_search` 实际调用；modsearch 侧重跑其 doctor 与一次
+`search -e firecrawl`（其兼容性按 dsh 版本逐一验证，dsh 升级后同样要复查
+`--dump-config` 中 `searchProvider: modsearch` 是否仍在）。
