@@ -148,6 +148,15 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 维护备忘
 
+- ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
+  只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
+  导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
+  验证法：web 直接 `dsh web` 看监听 URL；TUI 用伪 TTY
+  `timeout 15 script -q /dev/null dsh --profile dsh-tui`（渲染出横幅即通过）；
+  headless 跑一句话。已知未适配：`dsh-at-file`（≤0.6.3，import
+  `settingsNamespace`）与 `dsh-fetch-file`（≤0.1.2，import `CallId`），已在
+  `profiles/web/cordis.patch.yml` 里 `disabled: true` 顶住，**上游发适配版后
+  删那两行解禁**。
 - ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
   `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把

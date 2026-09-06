@@ -12,6 +12,14 @@
     providers:
       openai-codex: {}
 
+# dsh-at-file / dsh-fetch-file 截至 0.6.3 / 0.1.2 未适配 dsh 0.1.2-rc.1
+# 的官方包导出面（dsh-settings 的 settingsNamespace、dsh-llm 的 CallId 被移除），
+# import 即炸、拖垮整棵插件树。等上游发适配版后删除这两行解禁。
+- id: dsh-at-file
+  disabled: true
+- id: download
+  disabled: true
+
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
