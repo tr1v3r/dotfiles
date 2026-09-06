@@ -1,0 +1,187 @@
+diff --git a/lib/types/components/PromptInput.js b/lib/types/components/PromptInput.js
+index f7744a7..c51087c 100644
+--- a/lib/types/components/PromptInput.js
++++ b/lib/types/components/PromptInput.js
+@@ -4,6 +4,7 @@ import stripAnsi from 'strip-ansi';
+ import { readFile, unlink } from 'node:fs/promises';
+ import { basename } from 'node:path';
+ import { t } from '../i18n.js';
++import { vimCanonicalKey } from '../utils/keymap.js';
+ import { Box, Text, useInput, useTerminalSize, useTheme } from '../ui.js';
+ import { EffortChargeGlyph } from './EffortChargeGlyph.js';
+ import { EffortInputBorder } from './EffortInputBorder.js';
+@@ -146,6 +147,20 @@ function vimWordEnd(text, cursor) {
+         i++;
+     return i;
+ }
++/** End of the current OR NEXT word (`e` motion): from mid-word, this word's
++ *  end; from a word end or whitespace, skip ahead and take the next word's
++ *  end — repeated presses walk the word ends (unlike `vimWordEnd`, which
++ *  stalls on the whitespace a previous press landed on). */
++function vimWordEndForward(text, cursor) {
++    const len = text.length;
++    let i = cursor;
++    if (i < len && /\s/.test(text[i]))
++        while (i < len && /\s/.test(text[i]))
++            i++;
++    while (i < len && !/\s/.test(text[i]))
++        i++;
++    return i;
++}
+ // --- grapheme-cluster geometry ---------------------------------------------
+ // The caret, editing keys, and wrapping MUST agree on one text unit. Mixing
+ // UTF-16 code units (arrows/backspace), code points (wrap), and display
+@@ -1541,6 +1556,10 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+             const bounds = graphemeBoundaries(value);
+             const pending = vimPendingRef.current;
+             vimPendingRef.current = '';
++            // Vim key overrides (settings `dsh-tui.vimKeys`) translate before
++            // both dispatches so the `d` operator's second key follows the
++            // same layout as the motion it names.
++            input = vimCanonicalKey(input);
+             // Operator pending (`d`): the second key picks the target.
+             if (pending === 'd') {
+                 switch (input) {
+@@ -1620,6 +1639,9 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+                 case 'b':
+                     setInput(value, vimWordBackward(value, cursor));
+                     return;
++                case 'e': // forward to end of word (vim `e`)
++                    setInput(value, vimWordEndForward(value, cursor));
++                    return;
+                 case 'x': { // delete the character at the caret; at the very end of
+                     // the text delete the last character (vim: the caret sits ON the
+                     // last char after `$`, so `x` must still delete it). Same rule
+diff --git a/lib/types/dsh-adapter/plugin.js b/lib/types/dsh-adapter/plugin.js
+index 15a6f44..5a64860 100644
+--- a/lib/types/dsh-adapter/plugin.js
++++ b/lib/types/dsh-adapter/plugin.js
+@@ -24,7 +24,7 @@ import { resolveSessionCwd } from '../utils/workspaceRoot.js';
+ import { beginRestartAttempt, checkForTuiUpdate, installedTuiVersion, isBootDeadlockTarget, isStandaloneRuntime, isVersionNewer, logRestartEvent, resolveDshProfileName, resolveTuiUpdateTarget, restartTui, updateTuiAndRestart, writeHandoffNotice } from '../update.js';
+ import { getLang, isLang, resolveStartupLang, setLang, t, writeLangPref } from '../i18n.js';
+ import { DEFAULT_PAGE_MARGIN, DEFAULT_STATUS_BAR, applyPageMargin, isPageMarginMode, normalizePageMargin, normalizeScrollGutter, normalizeStatusBar, normalizeToolBackground, parsePageMarginSpec } from '../tuiDisplayPrefs.js';
+-import { draftComboConflicts, effectiveComboString, parseComboDraft, setKeymapOverrides, SHORTCUT_ACTIONS, } from '../utils/keymap.js';
++import { draftComboConflicts, effectiveComboString, parseComboDraft, setKeymapOverrides, setVimKeys, SHORTCUT_ACTIONS, VIM_ACTIONS, } from '../utils/keymap.js';
+ import { detectLegacyEnv, migrateLegacyDataDir, RENAMED_ENV } from '../utils/paths.js';
+ import { attachHerdrIntegration } from '../herdr.js';
+ import { logMouseDebug } from '../utils/debug.js';
+@@ -577,6 +577,11 @@ export async function apply(ctx, config) {
+             // action (see src/utils/keymap.ts). Unset keeps the default binding
+             // and the section's format() shows the effective combos.
+             shortcuts: Schema.object(Object.fromEntries(SHORTCUT_ACTIONS.map(action => [action.id, Schema.string().required(false)]))).required(false),
++            // `/vim` normal-mode key overrides, one optional single-character
++            // key per action (see VIM_ACTIONS in src/utils/keymap.ts). Unset
++            // keeps the default key; an override REPLACES the default key's
++            // meaning when it lands on another action's key.
++            vimKeys: Schema.object(Object.fromEntries(VIM_ACTIONS.map(action => [action.id, Schema.string().required(false)]))).required(false),
+         }));
+         const applyLayout = (value) => {
+             channel.setDiffLayout(value.diffLayout ?? config.diffLayout ?? 'auto');
+@@ -644,6 +649,23 @@ export async function apply(ctx, config) {
+             }
+             setKeymapOverrides(merged);
+         };
++        // Vim key overrides resolve like shortcuts: settings user layer over
++        // cordis.yml, unset everywhere keeps the registry default. Applied
++        // live into the keymap module — the next keypress already uses the
++        // new keys.
++        const applyVimKeys = (value) => {
++            const userLayer = value.vimKeys ?? {};
++            const configLayer = config.vimKeys ?? {};
++            const merged = {};
++            for (const action of VIM_ACTIONS) {
++                const chosen = typeof userLayer[action.id] === 'string' && userLayer[action.id] !== ''
++                    ? userLayer[action.id]
++                    : (typeof configLayer[action.id] === 'string' && configLayer[action.id] !== '' ? configLayer[action.id] : undefined);
++                if (chosen !== undefined)
++                    merged[action.id] = chosen;
++            }
++            setVimKeys(merged);
++        };
+         const apply = (next) => {
+             applyLayout(next);
+             applyWhale(next);
+@@ -651,6 +673,7 @@ export async function apply(ctx, config) {
+             applyLang(next);
+             applyDisplay(next);
+             applyShortcuts(next);
++            applyVimKeys(next);
+             applyFullscreen(next);
+         };
+         // One-time fullscreen factory-default migration (companion to the
+diff --git a/lib/types/utils/keymap.js b/lib/types/utils/keymap.js
+index ecd006c..cc64b8e 100644
+--- a/lib/types/utils/keymap.js
++++ b/lib/types/utils/keymap.js
+@@ -326,3 +326,71 @@ export function reservedActionCombos() {
+     }
+     return reserved;
+ }
++// --- vim normal-mode keys -----------------------------------------------------
++// `/vim`'s NORMAL submode binds bare characters, not ctrl/alt combos, so it
++// gets its own action registry beside SHORTCUT_ACTIONS: same shape (id +
++// defaults), same live-override cache fed by plugin.ts from the settings
++// user layer over cordis.yml. PromptInput translates a pressed key to the
++// canonical built-in key before its dispatch, so one remap covers motions,
++// edits, the `d` operator's second key, and the insert entries alike.
++/** Identifiers of every customizable `/vim` normal-mode action. */
++export const VIM_ACTIONS = [
++    { id: 'left', defaults: ['h'] },
++    { id: 'down', defaults: ['j'] },
++    { id: 'up', defaults: ['k'] },
++    { id: 'right', defaults: ['l'] },
++    { id: 'lineStart', defaults: ['0'] },
++    { id: 'firstNonBlank', defaults: ['^'] },
++    { id: 'lineEnd', defaults: ['$'] },
++    { id: 'wordForward', defaults: ['w'] },
++    { id: 'wordBackward', defaults: ['b'] },
++    { id: 'wordEnd', defaults: ['e'] },
++    { id: 'deleteChar', defaults: ['x'] },
++    { id: 'deleteBefore', defaults: ['X'] },
++    { id: 'deleteOperator', defaults: ['d'] },
++    { id: 'undo', defaults: ['u'] },
++    { id: 'insert', defaults: ['i'] },
++    { id: 'insertFirstNonBlank', defaults: ['I'] },
++    { id: 'insertAfter', defaults: ['a'] },
++    { id: 'insertEndOfLine', defaults: ['A'] },
++    { id: 'openBelow', defaults: ['o'] },
++    { id: 'openAbove', defaults: ['O'] },
++];
++/** Canonical built-in key of each action — overrides point an action at a
++ *  NEW pressed key, so the translation below maps back to this key. */
++const CANONICAL_VIM_KEY = new Map(VIM_ACTIONS.map(action => [action.id, action.defaults[0]]));
++/** Live vim overrides: pressed key → action id (settings user layer +
++ *  cordis.yml merged by plugin.ts). */
++let vimOverrideMap = new Map();
++/**
++ * Replace the whole vim override map. Values must be single printable
++ * characters (case-sensitive); anything else is DROPPED and the action
++ * keeps its default — same typo rule as setKeymapOverrides. `/` and `?`
++ * are refused: they own the command menu / help shortcuts before the vim
++ * dispatch ever sees them.
++ */
++export function setVimKeys(overrides) {
++    const next = new Map();
++    for (const action of VIM_ACTIONS) {
++        const raw = overrides[action.id];
++        if (raw === undefined)
++            continue;
++        for (const entry of (Array.isArray(raw) ? raw : [raw])) {
++            const key = String(entry);
++            if (key.length !== 1 || key === '/' || key === '?')
++                continue;
++            next.set(key, action.id);
++        }
++    }
++    vimOverrideMap = next;
++}
++/** Test seam: drop every vim override. */
++export function resetVimKeys() {
++    vimOverrideMap = new Map();
++}
++/** The canonical built-in key a pressed vim key acts as; identity for
++ *  unmapped keys (an untouched layout needs no translation). */
++export function vimCanonicalKey(key) {
++    const action = vimOverrideMap.get(key);
++    return action === undefined ? key : (CANONICAL_VIM_KEY.get(action) ?? key);
++}
