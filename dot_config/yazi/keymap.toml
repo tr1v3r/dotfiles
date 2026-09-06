@@ -82,7 +82,7 @@ keymap = [
 
 	# Shell
 	{ on = "<C-g>", run = ["shell --confirm --block lazygit", "plugin starship"], desc = "Lazygit" },
-	{ on = "<C-t>", run = ["shell --block 'dsh --profile dsh-tui'", "plugin starship"], desc = "Launch DSH TUI" },
+	{ on = "<C-t>", run = ["plugin dsh-tui", "plugin starship"], desc = "Launch DSH TUI with selected files" },
 	{ on = ";", run = "shell --interactive", desc = "Run a shell command" },
 	{ on = ":", run = ["shell --block --interactive", "plugin starship"], desc = "Run a shell command (block until finishes)" },
 
