@@ -13,3 +13,4 @@ dot_config/karakeep/.env filter=git-crypt diff=git-crypt
 dot_config/himalaya/config.toml filter=git-crypt diff=git-crypt
 dot_config/ortie/config.toml filter=git-crypt diff=git-crypt
 dot_config/git/work.config filter=git-crypt diff=git-crypt
+dot_zshenv.tmpl filter=git-crypt diff=git-crypt
