@@ -10,7 +10,6 @@ autoInstallPeers: false
 
 minimumReleaseAgeExclude:
   - '@deepseek-harness-tui/dsh-tui@0.10.0-beta.5'
-  - dsh-quote-followup@0.2.0
 
 nodeLinker: hoisted
 
