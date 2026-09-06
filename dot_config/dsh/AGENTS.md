@@ -48,7 +48,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（^0.9.3）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0-beta.5）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -148,9 +148,26 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 维护备忘
 
-- 升级 TUI：改 `profiles/dsh-tui/package.json` 的 `@deepseek-harness-tui/dsh-tui` 版本
-  后跑 `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
-  路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）。
+- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
+  `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
+  路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
+  `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
+  `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
+  三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+- ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
+  （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
+  整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
+  `pnpm patch` 拿到编辑目录 → 手工 `git diff --no-index` 生成单文件 diff（修掉
+  `a/a/` 双层前缀）→ 放进 `patches/` + 挂 `patchedDependencies`。
+- ⚠️ **settings.yaml 目标是真实文件不是 symlink**（settings seam 会运行时改写它，
+  `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置直接改
+  `~/.config/dsh/settings.yaml`（热加载立即生效）；chezmoi 源里的副本只是新机器
+  引导快照，`chezmoi apply` 会覆盖运行时状态——漂移是常态，别盲目 apply。
+- vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
+  `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
+  上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
+  （fork 分支 `tr1v3r/dsh-TUI:feat/vim-normal-keys`）；合入后可撤本地补丁改用
+  官方设置。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
   models 列表可精简回纯 id 列表（仍是整体替换语义）。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
