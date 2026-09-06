@@ -148,6 +148,19 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 维护备忘
 
+- **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
+  （github.com/tr1v3r/dsh-quote-followup，master 分支）；两个 profile 依赖 npm 版 `^0.1.0`）：「选中对话内容→针对性追问」。
+  TUI 面：`session/event` 缓冲 + `Ctrl+Alt+Q` 选择器（tuiDialogs/tuiShortcuts，仅需
+  插件激活、无需 Component admission）+ 经 dsh.nvim 注入套接字
+  （`~/.dsh-tui/inject/<sessionId>.sock` 的 `prompt.append`）把引用块写进输入框；
+  web 面：`lib/client.js`（ModuleLoader 闭包工厂）监听 transcript 选区 → 浮动按钮 →
+  插入 composer。⚠️ 两个坑已踩平：① apply 同步返回 + 异步 wire 时，快捷键注册会被
+  activation 生命周期立刻回收——apply 里必须先同步 `ctx.effect` 保活 fiber 再异步注册；
+  ② 快捷键匹配里 `alt` 修饰键映射到 key 对象的 `meta` 字段（ink 语义），测试 dispatch
+  要传 `{ctrl:true, meta:true}`。无头 E2E：仓库里 `node test/e2e-harness.mjs`（真实
+  extensions 行 + 注入 socket 全链路）。已发布 npm（0.1.0，2026-09-07），两个 profile 走 `^0.1.0`；
+  改动源码后 `npm version patch && npm publish` 再到 profile 里 `pnpm update
+  dsh-quote-followup`。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
   导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
