@@ -17,7 +17,7 @@
     "dsh-fetch-file": "^0.1.2",
     "dsh-holdem": "^0.3.0",
     "dsh-memory": "^0.1.0",
-    "dsh-quote-followup": "^0.1.0",
+    "dsh-quote-followup": "^0.2.5",
     "dshmarket": "1.44.0",
     "electron": "^44.2.0"
   },
@@ -26,23 +26,23 @@
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
-        "@liustack/modlens",
+        "@linxin666/dsh-client-ui-git-graph",
+        "@linxin666/dsh-client-ui-skill-explorer",
         "@linxin666/dsh-web-all",
-        "dsh-memory",
-        "dsh-quote-followup",
+        "@liustack/modlens",
+        "@liustack/modsearch",
+        "@nanmicoder/dsh-agent-teams",
         "@tt-a1i/archify-dsh",
+        "@wxg-prc-cpg/browser-skill-dsh-plugin",
         "dsh-at-file",
+        "dsh-better-sidebar",
         "dsh-builtin-browser",
+        "dsh-context",
         "dsh-fetch-file",
         "dsh-holdem",
-        "dshmarket",
-        "@wxg-prc-cpg/browser-skill-dsh-plugin",
-        "@liustack/modsearch",
-        "@linxin666/dsh-client-ui-git-graph",
-        "dsh-better-sidebar",
-        "@linxin666/dsh-client-ui-skill-explorer",
-        "dsh-context",
-        "@nanmicoder/dsh-agent-teams"
+        "dsh-memory",
+        "dsh-quote-followup",
+        "dshmarket"
       ]
     }
   }

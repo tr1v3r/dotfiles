@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.1-rc.2**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.2-rc.1**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -149,18 +149,22 @@ settings.yaml，否则 TUI 冲突复发。
 ## 维护备忘
 
 - **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
-  （github.com/tr1v3r/dsh-quote-followup，master 分支）；两个 profile 依赖 npm 版 `^0.1.0`）：「选中对话内容→针对性追问」。
-  TUI 面：`session/event` 缓冲 + `Ctrl+Alt+Q` 选择器（tuiDialogs/tuiShortcuts，仅需
-  插件激活、无需 Component admission）+ 经 dsh.nvim 注入套接字
-  （`~/.dsh-tui/inject/<sessionId>.sock` 的 `prompt.append`）把引用块写进输入框；
-  web 面：`lib/client.js`（ModuleLoader 闭包工厂）监听 transcript 选区 → 浮动按钮 →
-  插入 composer。⚠️ 两个坑已踩平：① apply 同步返回 + 异步 wire 时，快捷键注册会被
-  activation 生命周期立刻回收——apply 里必须先同步 `ctx.effect` 保活 fiber 再异步注册；
-  ② 快捷键匹配里 `alt` 修饰键映射到 key 对象的 `meta` 字段（ink 语义），测试 dispatch
-  要传 `{ctrl:true, meta:true}`。无头 E2E：仓库里 `node test/e2e-harness.mjs`（真实
-  extensions 行 + 注入 socket 全链路）。已发布 npm（0.1.0，2026-09-07），两个 profile 走 `^0.1.0`；
-  改动源码后 `npm version patch && npm publish` 再到 profile 里 `pnpm update
-  dsh-quote-followup`。
+  （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
+  `^0.2.5`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
+  composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
+  模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
+  序列化引用框架随 DSH 中英文切换；chip 视觉标签只保留摘录正文，去掉冗余角色前缀。
+  ⚠️ 四个运行时坑：① 不可直接
+  改 contenteditable DOM；② Firefox 的合成 `ClipboardEvent` 可能丢 `clipboardData`，文本
+  后备必须从 `__lexicalEditor._commands` 解析 `PASTE_COMMAND`；③ 旧页/hot swap 会残留
+  mounted 锁和共用按钮，新 client 要用 versioned state + button ownership 接管；④ Web
+  服务在 boot 时缓存 client bundle，更新包后必须同时**重启服务并刷新/重开旧页面**。
+  回归：`npm test`；真实验证同时查 chip/DOM 与 `__lexicalEditor.getEditorState()`，并覆盖
+  系统 Firefox。发布后改 profile 版本号，再在**实际 runtime target** 跑 `dsh plugin
+  --profile web clean --lockfile && dsh plugin --profile web install --no-frozen-lockfile`；不要只在
+  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。
+  pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
   导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
