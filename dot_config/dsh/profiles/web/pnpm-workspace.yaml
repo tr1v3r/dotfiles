@@ -7,7 +7,8 @@ minimumReleaseAgeExclude:
   - '@liustack/modlens@3.25.2'
   - '@liustack/modsearch@5.10.0'
   - dsh-builtin-browser@0.1.20
-  - dshmarket@1.35.0
+  - dshmarket@1.35.0 || 1.44.0
+  - '@nanmicoder/dsh-agent-teams@0.1.16-rc.1'
 allowBuilds:
   electron: true
   node-pty: true
