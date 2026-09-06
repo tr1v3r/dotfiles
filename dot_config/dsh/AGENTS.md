@@ -168,6 +168,18 @@ settings.yaml，否则 TUI 冲突复发。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
   （fork 分支 `tr1v3r/dsh-TUI:feat/vim-normal-keys`）；合入后可撤本地补丁改用
   官方设置。
+- **行中 skill 手势补全/高亮**（2026-09-06，同一个 patch 文件里叠加）：
+  内核 dsh-tool-skill 的 pre-step 钩子本来就注入用户消息里**所有**空白边界的
+  `/name` token（SKILL_GESTURE，`matchAll`），所以 `/a /b 一句话` 或
+  `请用 /a 和 /b …` 天然多 skill 同调；缺的只是输入侧 UX。patch 给
+  PromptInput.js 加了 `skillGestureAtCaret`（镜像 @mention 的 caret-token 机制，
+  offset-0 除外——那是命令浮层领地）+ 行中浮层（**只列 skill**，Enter/Tab 只替换
+  该 token 不发送）+ 已知 skill 名的 accent 高亮（`rowHighlightPieces` 三段式，
+  选区/caret 反显优先）。CommandSuggestions.js/.d.ts 加了可选 `title` prop
+  （浮层标题显示「技能」）。上游提案 <discussion 链接待补>。升级 TUI 重生成
+  patch 时**两个特性都要重做**（vimKeys + 本特性，改 5 个文件：
+  PromptInput.js、CommandSuggestions.js/.d.ts、dsh-adapter/plugin.js、
+  utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
   models 列表可精简回纯 id 列表（仍是整体替换语义）。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
