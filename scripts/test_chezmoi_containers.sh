@@ -235,7 +235,8 @@ for target in \
   "$TEST_HOME/.config/skhd" \
   "$TEST_HOME/.config/wm" \
   "$TEST_HOME/.config/yabai" \
-  "$TEST_HOME/.gnupg/gpg-agent.conf"; do
+  "$TEST_HOME/.gnupg/gpg-agent.conf" \
+  "$TEST_HOME/.local/bin"; do
   [[ ! -e "$target" && ! -L "$target" ]]
 done
 for service in adguard-home bt emby karakeep pihole; do

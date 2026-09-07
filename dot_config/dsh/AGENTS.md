@@ -1,12 +1,12 @@
 # dsh/ — DeepSeek Harness 配置
 
-本目录是 **DeepSeek Harness（dsh）** 的机器配置（`DSH_HOME=/Users/bytedance/.config/dsh`），
+本目录是 **DeepSeek Harness（dsh）** 的机器配置（`DSH_HOME=~/.config/dsh`），
 属于 dotfiles 仓库（`tr1v3r/dotfiles`，主分支 `master`，活跃分支 `dev`）的一部分。
 根目录 `AGENTS.md` 描述整个仓库；本文件描述 dsh 特有机制、坑与维护约定。
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.1-rc.2**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.2-rc.1**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -23,6 +23,7 @@ dsh plugin --profile <name> <pnpm args> # 管理 profile 的插件（pnpm 转发
 
 ```
 dsh/
+├── FIRECRAWL.md           # 本地部署、MCP 接入、使用与排障
 ├── settings.yaml          # 全局设置文档（热加载，见下）
 ├── cordis.patch.yml       # home 级 patch 层（本机当前为空）
 ├── .gitignore             # 秘密/运行时状态忽略规则（见「git 约定」）
@@ -36,6 +37,8 @@ dsh/
 └── skills/                # 外部 skill（从上游仓库克隆，已忽略）
 ```
 
+本地 Firecrawl 的部署、MCP 配置、验证与排障见 [`FIRECRAWL.md`](FIRECRAWL.md)。
+
 ## Profile 机制
 
 - 每个 profile 目录有 `package.json`（含 `dsh.profile.bundles` 列表）、`cordis.yml`
@@ -45,7 +48,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（^0.9.3）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0-beta.5）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -145,9 +148,66 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 维护备忘
 
-- 升级 TUI：改 `profiles/dsh-tui/package.json` 的 `@deepseek-harness-tui/dsh-tui` 版本
-  后跑 `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
-  路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）。
+- **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
+  （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
+  `^0.2.4`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
+  composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
+  模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
+  序列化引用框架随 DSH 中英文切换；chip 视觉标签只保留摘录正文，去掉冗余角色前缀。
+  ⚠️ 四个运行时坑：① 不可直接
+  改 contenteditable DOM；② Firefox 的合成 `ClipboardEvent` 可能丢 `clipboardData`，文本
+  后备必须从 `__lexicalEditor._commands` 解析 `PASTE_COMMAND`；③ 旧页/hot swap 会残留
+  mounted 锁和共用按钮，新 client 要用 versioned state + button ownership 接管；④ Web
+  服务在 boot 时缓存 client bundle，更新包后必须同时**重启服务并刷新/重开旧页面**。
+  回归：`npm test`；真实验证同时查 chip/DOM 与 `__lexicalEditor.getEditorState()`，并覆盖
+  系统 Firefox。发布后改 profile 版本号，再在**实际 runtime target** 跑 `dsh plugin
+  --profile web clean --lockfile && dsh plugin --profile web install --no-frozen-lockfile`；不要只在
+  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。
+  pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
+- ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
+  只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
+  导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
+  验证法：web 直接 `dsh web` 看监听 URL；TUI 用伪 TTY
+  `timeout 15 script -q /dev/null dsh --profile dsh-tui`（渲染出横幅即通过）；
+  headless 跑一句话。已知未适配：`dsh-at-file`（≤0.6.3，import
+  `settingsNamespace`）与 `dsh-fetch-file`（≤0.1.2，import `CallId`），已在
+  `profiles/web/cordis.patch.yml` 里 `disabled: true` 顶住，**上游发适配版后
+  删那两行解禁**。
+- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
+  `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
+  路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
+  `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
+  `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
+  三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+- ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
+  （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
+  整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
+  `pnpm patch` 拿到编辑目录 → 手工 `git diff --no-index` 生成单文件 diff（修掉
+  `a/a/` 双层前缀）→ 放进 `patches/` + 挂 `patchedDependencies`。
+- ⚠️ **settings.yaml 目标是真实文件不是 symlink**（settings seam 会运行时改写它，
+  `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置直接改
+  `~/.config/dsh/settings.yaml`（热加载立即生效）；chezmoi 源里的副本只是新机器
+  引导快照，`chezmoi apply` 会覆盖运行时状态——漂移是常态，别盲目 apply。
+- vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
+  `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
+  上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
+  （fork 分支 `tr1v3r/dsh-TUI:feat/vim-normal-keys`）；合入后可撤本地补丁改用
+  官方设置。（#777 正文 2026-09-06 已修复——首次发帖时 `--body-file` 误存了
+  字面量占位符，勿再犯：GraphQL 传正文用 `-F body=@file`。）
+- **行中 skill 手势补全/高亮**（2026-09-06，同一个 patch 文件里叠加）：
+  内核 dsh-tool-skill 的 pre-step 钩子本来就注入用户消息里**所有**空白边界的
+  `/name` token（SKILL_GESTURE，`matchAll`），所以 `/a /b 一句话` 或
+  `请用 /a 和 /b …` 天然多 skill 同调；缺的只是输入侧 UX。patch 给
+  PromptInput.js 加了 `skillGestureAtCaret`（镜像 @mention 的 caret-token 机制，
+  offset-0 除外——那是命令浮层领地）+ 行中浮层（**只列 skill**，Enter/Tab 只替换
+  该 token 不发送）+ 已知 skill 名的 accent 高亮（`rowHighlightPieces` 三段式，
+  选区/caret 反显优先）。CommandSuggestions.js/.d.ts 加了可选 `title` prop
+  （浮层标题显示「技能」）。上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/780 。
+  升级 TUI 重生成
+  patch 时**两个特性都要重做**（vimKeys + 本特性，改 5 个文件：
+  PromptInput.js、CommandSuggestions.js/.d.ts、dsh-adapter/plugin.js、
+  utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
   models 列表可精简回纯 id 列表（仍是整体替换语义）。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。

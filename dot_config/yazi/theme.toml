@@ -43,34 +43,67 @@ parent  = { fg = "#89b4fa", bold = true, reversed = false }
 current = { fg = "#7dcfff", bold = true, underline = true, reversed = false }
 preview = { fg = "#7dcfff", underline = true, reversed = false }
 
+# 软链接条目（文件/目录通用）名称显示为红色；失效链接规则在前，保留红底更醒目。
+# is 可选值见 https://yazi-rs.github.io/docs/configuration/theme/#filetype
+# 色板对齐 Tokyo Night：red #f7768e / bg #1a1b26
+[filetype]
+# ⚠️ 本段是「整体替换」语义：rules 会完全覆盖 flavor 的 [filetype]（此版无 prepend_rules 键，
+# 写了会导致整个 theme.toml 解析失败、所有自定义失效）。故下方先列本仓库增量规则，
+# 再完整继承 tokyo-night flavor 的规则。软链接红名需文件("*")/目录("*/")两种形态各写一条。
+rules = [
+	{ url = "*",  is = "orphan", bg = "#f7768e", fg = "#1a1b26" },
+	{ url = "*/", is = "orphan", bg = "#f7768e", fg = "#1a1b26" },
+	{ url = "*",  is = "link", fg = "#f7768e" },
+	{ url = "*/", is = "link", fg = "#f7768e" },
+	# ---- 以下继承 tokyo-night flavor ----
+	{ mime = "image/*", fg = "#e0af68" },
+	{ mime = "video/*", fg = "#f7768e" },
+	{ mime = "audio/*", fg = "#f7768e" },
+	{ mime = "application/zip",             fg = "#bb9af7" },
+	{ mime = "application/x-tar",           fg = "#bb9af7" },
+	{ mime = "application/x-bzip*",         fg = "#bb9af7" },
+	{ mime = "application/x-bzip2",         fg = "#bb9af7" },
+	{ mime = "application/x-7z-compressed", fg = "#bb9af7" },
+	{ mime = "application/x-rar",           fg = "#bb9af7" },
+	{ mime = "application/x-xz",            fg = "#bb9af7" },
+	{ mime = "application/doc",    fg = "#9ece6a" },
+	{ mime = "application/epub+zip", fg = "#9ece6a" },
+	{ mime = "application/pdf",    fg = "#9ece6a" },
+	{ mime = "application/rtf",    fg = "#9ece6a" },
+	{ mime = "application/vnd.*",  fg = "#9ece6a" },
+	{ mime = "application/*exec*", fg = "#f7768e" },
+	{ url = "*",  fg = "#c6d0f5" },
+	{ url = "*/", fg = "#7aa2f7" },
+]
+
 # 图标增量：append_*/prepend_* 叠加在内置默认图标上，不覆盖默认规则。
 # 缺口按本仓库实际文件补：chezmoi / git-crypt / age / gpg / yazi / macOS zsh。
-# glyph 全部取自内置默认主题（渲染有保障），色板对齐 Tokyo Night：
+# glyph 取自内置预设（workspace/node_modules/toml 等）或 nf font-awesome，色板对齐 Tokyo Night：
 #   blue #7aa2f7 / cyan #7dcfff / yellow #e0af68 / purple #bb9af7 / gray #565f89
 [icon]
 prepend_globs = [
-	{ url = "**/.chezmoi*", text = "", fg = "#7dcfff" },
+	{ url = "**/.chezmoi*", text = "", fg = "#7dcfff" },
 ]
 append_dirs = [
-	{ name = ".cache",    text = "", fg = "#565f89" },
+	{ name = ".cache",    text = "", fg = "#565f89" },
 	{ name = ".gnupg",    text = "󰯄", fg = "#bb9af7" },
-	{ name = ".local",    text = "", fg = "#7dcfff" },
-	{ name = ".ssh",      text = "", fg = "#e0af68" },
-	{ name = "Github",    text = "", fg = "#7aa2f7" },
-	{ name = "workspace", text = "", fg = "#7dcfff" },
+	{ name = ".local",    text = "", fg = "#7dcfff" },
+	{ name = ".ssh",      text = "", fg = "#e0af68" },
+	{ name = "Github",    text = "", fg = "#7aa2f7" },
+	{ name = "workspace", text = "", fg = "#7dcfff" },
 	# 上游 quirk：默认把 node_modules 放在 files 数组（只匹配非目录），目录反而无图标
-	{ name = "node_modules", text = "", fg = "#e8274b" },
+	{ name = "node_modules", text = "", fg = "#e8274b" },
 ]
 append_files = [
-	{ name = ".zprofile", text = "", fg = "#89e051" },
-	{ name = ".zlogin",   text = "", fg = "#89e051" },
-	{ name = "yazi.toml",   text = "", fg = "#e0af68" },
-	{ name = "keymap.toml", text = "", fg = "#e0af68" },
-	{ name = "theme.toml",  text = "", fg = "#e0af68" },
-	{ name = "keys.txt",  text = "", fg = "#565f89" },
+	{ name = ".zprofile", text = "", fg = "#89e051" },
+	{ name = ".zlogin",   text = "", fg = "#89e051" },
+	{ name = "yazi.toml",   text = "", fg = "#e0af68" },
+	{ name = "keymap.toml", text = "", fg = "#e0af68" },
+	{ name = "theme.toml",  text = "", fg = "#e0af68" },
+	{ name = "keys.txt",  text = "󰈙", fg = "#565f89" },
 ]
 append_exts = [
 	{ name = "gpg",   text = "󰯄", fg = "#bb9af7" },
-	{ name = "age",   text = "", fg = "#565f89" },
-	{ name = "plist", text = "", fg = "#7aa2f7" },
+	{ name = "age",   text = "", fg = "#565f89" },
+	{ name = "plist", text = "", fg = "#7aa2f7" },
 ]

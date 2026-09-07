@@ -16,8 +16,9 @@
 onboarding = false
 
 [theme]
-# Follow the outer terminal's ANSI palette across different hosts and terminals.
-name = "terminal"
+# Pin a consistent Tokyo Night palette across hosts and terminals.
+name = "tokyo-night"
+auto_switch = false
 
 [terminal]
 # Leave default_shell unset so each host uses its own $SHELL.
@@ -63,14 +64,32 @@ navigate_pane_down = "e"
 navigate_pane_up = "u"
 navigate_pane_right = "i"
 
+# Equalize pane sizes in the focused tab. --axis down evens the heights of
+# vertical stacks; --axis right evens the widths of horizontal rows; mixed
+# layouts only touch their uniform sub-stacks. Runs detached; the layout
+# change itself is the feedback.
+# https://gist.github.com/tr1v3r/3b9337f9f28f75f5456498abd85f5e99
+[[keys.command]]
+key = "prefix+alt+v"
+type = "shell"
+command = "$HOME/.local/bin/herdr-even --apply --axis down"
+
+[[keys.command]]
+key = "prefix+alt+h"
+type = "shell"
+command = "$HOME/.local/bin/herdr-even --apply --axis right"
+
 [ui]
 # Pack split panes tighter: share divider borders instead of keeping a
 # visible gap between adjacent panes (tmux-style internal splitters).
 pane_gaps = false
 
+[experimental]
+# Let pane applications such as Yazi render images through Herdr.
+kitty_graphics = true
+
 # Optional macOS/CJK compatibility. Enable only if an agent TUI hides the cursor
 # or a non-ASCII input source makes prefix shortcuts inconvenient.
-# [experimental]
 # reveal_hidden_cursor_for_cjk_ime = true
 # cjk_ime_agents = ["claude", "codex"]
 # switch_ascii_input_source_in_prefix = true

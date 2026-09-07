@@ -26,6 +26,7 @@ scripts
 .config/wm
 .config/yabai
 .gnupg/gpg-agent.conf
+.local/bin
 {{ end }}
 {{ if ne .chezmoi.os "linux" }}
 .config/picom.conf

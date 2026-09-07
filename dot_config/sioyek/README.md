@@ -1,20 +1,39 @@
 # Sioyek configuration
 
-Sioyek 2.0.0 on macOS reads `prefs_user.config` and `keys_user.config` from
-inside `/Applications/sioyek.app/Contents/MacOS/`. Chezmoi deploys the real
-files here and `run_onchange_after_link-sioyek-config.sh.tmpl` repairs symlinks when either
-config hash changes or Homebrew replaces the Sioyek app bundle.
+Sioyek on macOS reads `prefs_user.config` and `keys_user.config` from inside
+`/Applications/Sioyek.app/Contents/MacOS/`. Chezmoi deploys the real files here
+and `run_onchange_after_link-sioyek-config.sh.tmpl` repairs symlinks when either
+config hash changes or the app bundle is replaced.
 
-Homebrew currently marks the 2.0.0 cask deprecated because it lacks a usable
-Gatekeeper signature and plans to disable it on 2026-09-01. On this host the
-quarantine attribute was removed only from `/Applications/sioyek.app`; global
-Gatekeeper and SIP remain enabled. After a fresh install, if macOS reports that
-the app is damaged, apply the same narrow workaround explicitly:
+## Install (NOT via brew)
+
+The homebrew cask was disabled on 2026-09-01 (the 2.0.0 build fails the
+Gatekeeper check) and ships Intel-only. Sioyek is installed manually from the
+official arm64 build — currently the `sioyek3-alpha0` prerelease, the only
+official Apple Silicon build:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/sioyek.app
+curl -fsSL -o /tmp/sioyek.zip \
+  https://github.com/ahrm/sioyek/releases/download/sioyek3-alpha0/sioyek-release-mac-arm.zip
+unzip -q /tmp/sioyek.zip -d /tmp/sioyek3
+hdiutil attach -nobrowse -readonly -mountpoint /tmp/sioyek3/mnt /tmp/sioyek3/build/sioyek.dmg
+cp -Rp /tmp/sioyek3/mnt/sioyek.app /Applications/Sioyek.app
+xattr -dr com.apple.quarantine /Applications/Sioyek.app
+hdiutil detach /tmp/sioyek3/mnt
 ```
 
-Bindings add a Colemak navigation layer (`n/e/u/i`) while retaining Sioyek's
-defaults. Press `F8` to toggle Catppuccin paper colors rather than forcing
-figure inversion for every document.
+`scripts/init_mac.sh` does the same on a fresh machine. The CLI wrapper is
+chezmoi-managed at `dot_local/bin/sioyek` → `~/.local/bin/sioyek` (already on
+PATH; ignored on non-darwin hosts). The build is adhoc-signed and
+curl-downloaded files carry no quarantine attribute, so the `xattr` line is a
+safety net; global Gatekeeper and SIP stay enabled. Databases (highlights,
+bookmarks) live in `~/Library/Application Support/sioyek` and survive app
+replacements; the bundle symlinks are repaired by `chezmoi apply`.
+
+## Bindings
+
+Bindings add a Colemak navigation layer (`n/e/u/i`) plus uppercase quick
+movement (`N/E/U/I`: smart left, screen down, screen up, smart right). Search
+results use `,`/`.` for previous/next. Display controls use a mnemonic `z`
+prefix: `zc` toggles Tokyo Night paper colors and `zp` toggles the portal
+helper window.

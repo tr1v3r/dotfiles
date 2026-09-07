@@ -56,6 +56,13 @@ local get_config = ya.sync(function(state)
 	}
 end)
 
+local function url_is_regular(url)
+	if url.spec then
+		return url.spec.is_regular
+	end
+	return url.is_regular
+end
+
 local selected_or_hovered = ya.sync(function()
 	local tab = cx.active
 	local targets = {}
@@ -65,7 +72,7 @@ local selected_or_hovered = ya.sync(function()
 			path = tostring(url),
 			parent = tostring(url.parent),
 			name = tostring(url.name),
-			is_local = url.is_regular,
+			is_local = url_is_regular(url),
 		}
 	end
 
@@ -75,7 +82,7 @@ local selected_or_hovered = ya.sync(function()
 			path = tostring(hovered.url),
 			parent = tostring(hovered.url.parent),
 			name = tostring(hovered.url.name),
-			is_local = hovered.url.is_regular,
+			is_local = url_is_regular(hovered.url),
 		}
 	end
 

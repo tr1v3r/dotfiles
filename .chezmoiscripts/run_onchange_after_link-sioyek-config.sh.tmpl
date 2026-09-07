@@ -1,13 +1,14 @@
 #!/bin/bash
-# Sioyek 2.0.0 for macOS stores user config inside its app bundle. Keep the
-# real files in ~/.config/sioyek and repair links only when relevant state changes.
+# Sioyek for macOS (2.0 and 3-alpha alike) stores user config inside its app
+# bundle. Keep the real files in ~/.config/sioyek and repair links only when
+# relevant state changes.
 # prefs-sha256: {{ include "dot_config/sioyek/prefs_user.config" | sha256sum }}
 # keys-sha256: {{ include "dot_config/sioyek/keys_user.config" | sha256sum }}
-# app-marker: {{ output "/bin/sh" "-c" "if [ -e /Applications/sioyek.app ]; then /usr/bin/stat -f '%m:%i' /Applications/sioyek.app; else echo absent; fi" | trim }}
+# app-marker: {{ output "/bin/sh" "-c" "if [ -e /Applications/Sioyek.app ]; then /usr/bin/stat -f '%m:%i' /Applications/Sioyek.app; else echo absent; fi" | trim }}
 set -euo pipefail
 [[ "$(uname -s)" == "Darwin" ]] || exit 0
 
-bundle_dir='/Applications/sioyek.app/Contents/MacOS'
+bundle_dir='/Applications/Sioyek.app/Contents/MacOS'
 config_dir="$HOME/.config/sioyek"
 [[ -d "$bundle_dir" ]] || exit 0
 

@@ -49,6 +49,21 @@ llm-pi-ai:
         supportsReasoningEffort: false
         maxTokensField: max_tokens
         thinkingFormat: zai
+# /vim 输入框 vim 模式键位（colemak，映射同 nvim lua/r1v3r/keymaps.lua）。
+# vimKeys 机制由本地 pnpm patch 提供（profiles/dsh-tui/patches/，随 0.10.0-beta.5 锁定，
+# 升级 TUI 需重做补丁）。j 未映射仍为下行，0/$/^/w/b/x/X/d/a/A/o/O 保持原义。
+dsh-tui:
+  vimKeys:
+    left: n
+    down: e
+    up: u
+    right: i
+    wordEnd: h
+    undo: l
+    insert: k
+    insertFirstNonBlank: K
+    lineStart: N
+    lineEnd: I
 # Web 终端字体：Nerd Font 图标 + 中文兜底（better-sidebar 底部终端 / dsh-ssh SSH 终端）
 dsh-better-sidebar:
   terminalFontFamily: 'Hack Nerd Font Mono, "LXGW WenKai Mono", monospace'

@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+"""herdr-even — equalize pane sizes in a Herdr tab.
+
+Walks the tab's BSP layout tree (raw `layout.export`) and resets every
+uniform-direction subtree to even shares:
+
+  - vertical stack of N panes  -> all equal heights
+  - horizontal row of N panes  -> all equal widths
+
+Mixed regions (e.g. one tall pane beside a stacked column) are left alone
+except for their uniform sub-stacks, which is usually what you want.
+
+There is no CLI wrapper for `layout.set_split_ratio` in herdr 0.8.2, so this
+talks newline-delimited JSON directly to the local socket:
+  https://github.com/herdrdev/herdr/discussions/3647
+  https://github.com/herdrdev/herdr/discussions/2803  (upstream preset request)
+
+Usage:
+  herdr-even                 # dry-run: show what would change
+  herdr-even --apply         # actually apply to the active tab
+  herdr-even --tab w1:t1 --apply
+"""
+
+import argparse
+import json
+import os
+import socket
+import sys
+
+EPSILON = 0.001
+
+
+class ApiError(Exception):
+    pass
+
+
+def socket_path():
+    env = os.environ.get("HERDR_SOCKET_PATH")
+    if env:
+        return env
+    base = os.path.expanduser("~/.config/herdr")
+    session = os.environ.get("HERDR_SESSION")
+    if session:
+        return f"{base}/sessions/{session}/herdr.sock"
+    return f"{base}/herdr.sock"
+
+
+def api(method, params, sock_path=None):
+    path = sock_path or socket_path()
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(5)
+        s.connect(path)
+    except (FileNotFoundError, ConnectionRefusedError, PermissionError) as e:
+        sys.exit(f"herdr-even: cannot reach Herdr socket {path}: {e}")
+    s.sendall((json.dumps({"id": "herdr-even", "method": method,
+                           "params": params}) + "\n").encode())
+    buf = b""
+    while b"\n" not in buf:
+        chunk = s.recv(65536)
+        if not chunk:
+            break
+        buf += chunk
+    s.close()
+    resp = json.loads(buf.split(b"\n", 1)[0])
+    if "error" in resp:
+        raise ApiError(f"{method}: {resp['error']}")
+    return resp["result"]
+
+
+def leaf_count(node):
+    if node["type"] == "pane":
+        return 1
+    return leaf_count(node["first"]) + leaf_count(node["second"])
+
+
+def uniform_leaves(node, direction="__unset__"):
+    """Leaf count if every split in this subtree shares one direction, else None."""
+    if node["type"] == "pane":
+        return 1
+    if direction == "__unset__":
+        direction = node["direction"]
+    elif node["direction"] != direction:
+        return None
+    a = uniform_leaves(node["first"], direction)
+    b = uniform_leaves(node["second"], direction)
+    return a + b if (a is not None and b is not None) else None
+
+
+def node_at(root, path):
+    n = root
+    for go_first in path:
+        n = n["first"] if go_first else n["second"]
+    return n
+
+
+def collect_plan(root):
+    """[(path, target_ratio, direction, leaves_first, leaves_second)] to even out.
+
+    Every internal split of a uniform-direction subtree gets
+    ratio = leaves(first) / leaves(total); mixed nodes are only descended into.
+    """
+    plan = []
+
+    def emit_uniform(n, path):
+        lf = leaf_count(n["first"])
+        lr = leaf_count(n["second"])
+        plan.append((path, lf / (lf + lr), n["direction"], lf, lr))
+        if n["first"]["type"] == "split":
+            emit_uniform(n["first"], path + [True])
+        if n["second"]["type"] == "split":
+            emit_uniform(n["second"], path + [False])
+
+    def walk(node, path):
+        if node["type"] != "split":
+            return
+        if uniform_leaves(node) is not None:
+            emit_uniform(node, path)
+        else:
+            walk(node["first"], path + [True])
+            walk(node["second"], path + [False])
+
+    walk(root, [])
+    return plan
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Equalize pane sizes in a Herdr tab.")
+    ap.add_argument("--tab", help="tab id (default: active tab)")
+    ap.add_argument("--axis", choices=("both", "down", "right"), default="both",
+                    help="down: equal heights of vertical stacks only; "
+                         "right: equal widths of horizontal rows only "
+                         "(default: both)")
+    ap.add_argument("--apply", action="store_true",
+                    help="send the changes (default: dry-run)")
+    args = ap.parse_args()
+
+    params = {"tab_id": args.tab} if args.tab else {}
+    export = api("layout.export", params)["layout"]
+    root = export["root"]
+    tab_id = export["tab_id"]
+
+    if root["type"] == "pane":
+        print(f"tab {tab_id}: single pane, nothing to equalize")
+        return
+
+    changes = []
+    for path, target, direction, lf, lr in collect_plan(root):
+        if args.axis != "both" and direction != args.axis:
+            continue
+        current = node_at(root, path)["ratio"]
+        if abs(current - target) > EPSILON:
+            changes.append((path, target, current, direction, lf, lr))
+
+    axis = {"right": "width", "down": "height"}
+    if not changes:
+        total = leaf_count(root)
+        print(f"tab {tab_id}: already even ({total} panes)")
+        return
+
+    label = "would set" if not args.apply else "setting"
+    for path, target, current, direction, lf, lr in changes:
+        where = "root" if not path else "".join("1" if p else "2" for p in path)
+        print(f"tab {tab_id}: {label} split[{where}] ({direction}, "
+              f"{lf}:{lr} leaves) ratio {current:.3f} -> {target:.4f} "
+              f"(equal {axis[direction]})")
+
+    if not args.apply:
+        print("dry-run only; re-run with --apply to change the layout")
+        return
+
+    # set_split_ratio takes a boolean path. The docs don't pin down which
+    # value means "first child", so try one convention and, if the server
+    # rejects or misapplies it, retry with every boolean flipped. The final
+    # verification decides.
+    def send_all(flip):
+        for path, target, *_ in changes:
+            p = [not x for x in path] if flip else path
+            api("layout.set_split_ratio",
+                {"tab_id": tab_id, "path": p, "ratio": target})
+        return api("layout.export", params)["layout"]["root"]
+
+    def verify(new_root):
+        return all(abs(node_at(new_root, path)["ratio"] - target) <= EPSILON
+                   for path, target, *_ in changes)
+
+    new_root = None
+    for flip in (False, True):
+        try:
+            new_root = send_all(flip)
+            if verify(new_root):
+                break
+        except ApiError:
+            continue
+
+    if new_root is not None and verify(new_root):
+        print(f"done: {len(changes)} split(s) evened out")
+    else:
+        sys.exit("herdr-even: could not apply changes — inspect with: herdr pane layout")
+
+
+if __name__ == "__main__":
+    main()

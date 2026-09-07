@@ -19,7 +19,7 @@ Debian, and Arch Linux, with Linux home-server support and Colemak optimization.
 - **git-crypt** encrypted secrets — sensitive files encrypted at rest in the repo
 - **Cross-distribution bootstrap** — Homebrew on macOS, APT on Ubuntu/Debian, and pacman on Arch
 - **Self-hosted service stacks** — Docker Compose for DNS, media, bookmarks, and downloads
-- **Submodule-based editors** — `.zsh/` and `.nvim/` live in their own repos
+- **Submodule-based configs** — `.zsh/`, `.nvim/`, and `.hermes/` live in their own repos
 
 ## Repository Structure
 
@@ -27,6 +27,7 @@ The checkout is the chezmoi **source** dir (`~/.local/share/chezmoi` after
 `chezmoi init`):
 
 - `dot_config/` → `~/.config/` — all XDG configs, plus the service stacks and `deploy/`
+- `.zsh/`, `.nvim/`, `.hermes/` — independent submodules mapped to their runtime locations
 - `dot_zshenv.tmpl`, `dot_condarc`, `dot_cargo/`, `dot_gnupg/` → home-level dotfiles
 - `scripts/`, `*.md` — repo-only; encrypted `age/` and `secrets/` live under `dot_config/`
 - `.chezmoiignore` — per-machine exclusions (`machineRole`: `workstation` vs `home-server`)
@@ -103,7 +104,7 @@ Linux, use `./scripts/init.sh --help` for optional groups, dry-run, and retry co
   `dot_config/git/work.config`, `dot_config/aerc/accounts.conf`, various `*.env`).
 - **Editing**: non-template targets are symlinks — edit in place. Templates
   (`*.tmpl`) are rendered copies; edit them with `chezmoi edit <target>`.
-- **Submodules**: `.zsh/` and `.nvim/` are separate repos
+- **Submodules**: `.zsh/`, `.nvim/`, and `.hermes/` are separate repos
   with their own docs — edit and commit there, then bump the pointer here.
 - **SSH layering**: chezmoi renders `~/.ssh/config`; machine-local overrides live in
   unmanaged `~/.ssh/config.local`, macOS also includes OrbStack, and shared hosts

@@ -49,7 +49,7 @@ what is tracked:
 
 ```
 ~/.local/share/chezmoi/
-├── .zsh/ .nvim/        # submodules, hidden from chezmoi (dot-prefix), dir-symlinked
+├── .zsh/ .nvim/ .hermes/ # submodules, hidden from chezmoi (dot-prefix), dir-symlinked
 ├── dot_config/          # → ~/.config/ (all XDG configs, service stacks, deploy/)
 ├── dot_zshenv.tmpl      # → ~/.zshenv (renders HOST_PROFILE from chezmoi data)
 ├── private_dot_gitconfig.tmpl # → ~/.gitconfig loader; .gitconfig.local stays local
@@ -71,6 +71,7 @@ chezmoi init git@github.com:tr1v3r/dotfiles.git   # clone + answer the questionn
 cd ~/.local/share/chezmoi
 ./scripts/init.sh                                  # explicit system packages; self-elevates on Linux
 git-crypt unlock                                  # decrypt secrets (needs the GPG key)
+(cd .hermes && git-crypt unlock)                  # submodule credentials, same GPG key
 chezmoi apply                                     # deploy config; never installs packages
 ```
 
@@ -88,11 +89,14 @@ source paths instead of silently testing stale code.
 ## Submodules
 
 See `.gitmodules`. After cloning: `git submodule update --init`. Known
-submodules: `.zsh`, `.nvim` (whole-dir-symlinked to `~/.config/zsh`,
-`~/.config/nvim` via `dot_config/symlink_*.tmpl`), `dot_config/firefox`
-(custom branch), `dot_config/ai/llm-wiki`. The old
+submodules: `.zsh`, `.nvim` (whole-dir-symlinked to `~/.config/zsh` and
+`~/.config/nvim` via `dot_config/symlink_*.tmpl`), `.hermes`
+(whole-dir-symlinked to `~/.hermes` via `symlink_dot_hermes.tmpl`),
+`dot_config/firefox` (custom branch), `dot_config/ai/llm-wiki`. The old
 `ranger/plugins/{ranger_devicons,ranger-gpg}` submodules are **vendored**
-(pinned commits, plain files now).
+(pinned commits, plain files now). `.hermes` keeps its credentials
+(`.env`, `auth.json`) git-crypt-encrypted with the same GPG key — unlock it
+once after cloning (see Bootstrap).
 
 ## Directory Map
 
@@ -100,7 +104,9 @@ submodules: `.zsh`, `.nvim` (whole-dir-symlinked to `~/.config/zsh`,
 CLAUDE.md/AGENTS.md), `nvim/` (submodule at `.nvim/`), `aerc/`, `himalaya/`,
 `kitty/`, `iterm2/`, `tmux/`, `tmux-powerline/`, `ranger/`, `yazi/`,
 `lazygit/`, `gnupg/`→promoted, `ssh/`, `git/`, `raycast/`, `neofetch/`,
-`snipaste/`, `btop/` (replaced deprecated `bashtop/` 2026-08), `herdr/`, `dsh/`, `skills/`, `ai/`, `ortie/` (ortie contains credentials — git-crypt encrypted).
+`snipaste/`, `btop/` (replaced deprecated `bashtop/` 2026-08), `herdr/`,
+`dsh/`, `.hermes/` (private Hermes Agent config submodule), `skills/`, `ai/`,
+`ortie/` (ortie contains credentials — git-crypt encrypted).
 
 **Self-hosted service stacks** (under `dot_config/`, each with a README):
 `adguard-home/`, `pihole/`, `emby/`, `karakeep/`, `bt/`. Applied **only** on
@@ -124,6 +130,6 @@ Do not invent a third mechanism; extend these.
 ## Conventions
 
 - Secrets via git-crypt (or 1Password CLI `op item get`) — never hardcoded.
-- Prefer editing the submodule repos in place (`.zsh/`, `.nvim/`) and committing there, then bumping the pointer here.
+- Prefer editing the submodule repos in place (`.zsh/`, `.nvim/`, `.hermes/`) and committing there, then bumping the pointer here.
 - Rust-modern CLI tools are the default (`bat`, `rg`, `eza`, `fd`, `zoxide`).
 - Dependabot alerts on the stale `master` default branch (default-branch switch pending).

@@ -1,0 +1,4 @@
+#!/bin/sh
+# CLI wrapper for the manually installed Sioyek.app — see dot_config/sioyek/README.md
+# for why this is not a brew cask. Forwards args (e.g. `sioyek paper.pdf`).
+exec /Applications/Sioyek.app/Contents/MacOS/sioyek "$@"

@@ -54,17 +54,37 @@ have brew || abort "Homebrew was installed but could not be added to PATH"
 # Formulae (brew itself skips the ones already installed; go included)
 # NOTE: per-package loop so one bad/renamed formula doesn't kill the rest.
 echo "Installing packages via Homebrew..."
-brew_packages=("python3" "neovim" "gpg" "paperkey" "zoxide" "tldr" "mpv" "autojump" "tmux" "wget" "lua" "tree" "git-delta" "git-crypt" "fzf" "neofetch" "cmake" "highlight" "graphviz" "ffmpeg" "openssl" "sops" "figlet" "go" "switchaudio-osx" "nowplaying-cli" "uv")
+brew_packages=("python3" "neovim" "gpg" "paperkey" "zoxide" "tldr" "mpv" "autojump" "tmux" "wget" "lua" "tree" "sevenzip" "git-delta" "git-crypt" "fzf" "neofetch" "cmake" "highlight" "graphviz" "ffmpeg" "openssl" "sops" "figlet" "go" "switchaudio-osx" "nowplaying-cli" "uv")
 for pkg in "${brew_packages[@]}"; do
 	brew install "$pkg" || echo "WARN: brew install $pkg failed (continuing)"
 done
 
 # Casks — the homebrew/cask-fonts tap is deprecated; fonts live in homebrew/cask now
 echo "Installing casks via Homebrew..."
-brew_casks=("font-hack-nerd-font" "font-sketchybar-app-font" "skim" "sioyek")
+brew_casks=("font-hack-nerd-font" "font-sketchybar-app-font" "skim")
 for cask in "${brew_casks[@]}"; do
 	brew install --cask "$cask" || echo "WARN: brew install --cask $cask failed (continuing)"
 done
+
+# Sioyek — NOT via brew: the 2.0.0 cask is disabled (fails Gatekeeper) and is
+# Intel-only. Install the official arm64 build from GitHub releases instead;
+# `chezmoi apply` then links ~/.config/sioyek into the app bundle.
+if [ ! -d /Applications/Sioyek.app ]; then
+	echo "Installing Sioyek (arm64, sioyek3-alpha0)..."
+	sioyek_tmp="$(mktemp -d)"
+	if curl -fsL -o "$sioyek_tmp/sioyek.zip" \
+		https://github.com/ahrm/sioyek/releases/download/sioyek3-alpha0/sioyek-release-mac-arm.zip; then
+		unzip -q "$sioyek_tmp/sioyek.zip" -d "$sioyek_tmp" \
+			&& hdiutil attach -nobrowse -readonly -mountpoint "$sioyek_tmp/mnt" "$sioyek_tmp/build/sioyek.dmg" >/dev/null \
+			&& cp -Rp "$sioyek_tmp/mnt/sioyek.app" /Applications/Sioyek.app \
+			&& xattr -dr com.apple.quarantine /Applications/Sioyek.app \
+			|| echo "WARN: Sioyek install failed (continuing)"
+		hdiutil detach "$sioyek_tmp/mnt" >/dev/null 2>&1 || true
+	else
+		echo "WARN: failed to download Sioyek (continuing)"
+	fi
+	rm -rf "$sioyek_tmp"
+fi
 
 # Neovim LSP servers & formatter binaries — mason.nvim only manages DAP adapters,
 # so the servers it used to install became system packages (see .nvim settings.lua

@@ -2,13 +2,15 @@
   "name": "dsh-profile-dsh-tui",
   "private": true,
   "dependencies": {
-    "@deepseek-harness-tui/dsh-tui": "0.10.0-beta.1"
+    "@deepseek-harness-tui/dsh-tui": "0.10.0-beta.5",
+    "dsh-memory": "^0.1.0"
   },
   "dsh": {
     "profile": {
       "bundles": [
         "@deepseek-ai/dsh-base",
-        "@deepseek-harness-tui/dsh-tui"
+        "@deepseek-harness-tui/dsh-tui",
+        "dsh-memory"
       ]
     }
   }

@@ -11,3 +11,6 @@
 [submodule "ai/llm-wiki"]
 	path = dot_config/ai/llm-wiki
 	url = https://gist.github.com/396fcb101232c68ff40322efebb56a64.git
+[submodule "hermes"]
+	path = .hermes
+	url = git@github.com:tr1v3r/hermes.git
