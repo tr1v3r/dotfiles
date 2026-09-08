@@ -41,10 +41,10 @@
 # API Key 统一读环境变量 ZAI_CODING_CN_API_KEY（~/.config/secrets/api-keys.env 导出，
 # ~/.zshenv 引导 source，仅覆盖 shell 进程；GUI/launchd 进程读不到该变量时
 # tools/list 健康检查会拿应用层 401，GUI 域注入方案待定）。
-# 联网搜索 / 网页读取 / 开源仓库：远程 streamable-http；视觉理解：本地 stdio。
+# 联网搜索 / 网页读取 / 开源仓库均使用远程 streamable-http。
 # ⚠️ 新增插件实例必须挂在 insert 列表里：顶层 `- id:` 是按 id 定位已有条目的 patch，
 # id 在组合树里不存在时整条被静默丢弃（--dump-config 仅一行 "entry not found" 警告，
-# 四个 GLM server 曾经因此从未加载）。
+# GLM server 曾经因此从未加载）。
 - insert:
     - id: mcp-zai-search
       name: '@deepseek-ai/dsh-mcp-client'
@@ -76,22 +76,5 @@
         url: https://open.bigmodel.cn/api/mcp/zread/mcp
         headers:
           Authorization: !!js "'Bearer ' + (process.env.ZAI_CODING_CN_API_KEY || '')"
-        toolCallTimeoutMs: 180000
-        failOnStartupError: false
-
-    - id: mcp-zai-vision
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: zai-mcp-server
-        transport: stdio
-        # 绝对路径：GUI/launchd 拉起的 dsh（com.dsh.doctor）PATH 里没有 fnm，裸 npx spawn 失败
-        command: {{ .chezmoi.homeDir }}/.local/share/fnm/aliases/default/bin/npx
-        args:
-          - -y
-          - '@z_ai/mcp-server@latest'
-        env:
-          Z_AI_API_KEY: !!js process.env.ZAI_CODING_CN_API_KEY || ''
-          Z_AI_MODE: ZHIPU
-          NPM_CONFIG_CACHE: !!js process.env.HOME + '/.cache/dsh-npm'
         toolCallTimeoutMs: 180000
         failOnStartupError: false

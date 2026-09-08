@@ -154,7 +154,7 @@ settings.yaml，否则 TUI 冲突复发。
 - **⚠️ cordis.patch.yml 顶层 `- id:` ≠ 新增条目（2026-09-08 踩坑，勿回退）**：顶层
   `- id:` 是按 id 定位**组合树里已有条目**的 patch，id 不存在时整条被静默丢弃，
   `--dump-config` 只在输出头部留一行 `patch: entry "xxx" not found` 警告。新增插件
-  实例（如四个 `mcp-zai-*` GLM MCP server）必须写进 `- insert:` 列表——它们曾以
+  实例（如 `mcp-zai-*` GLM MCP server）必须写进 `- insert:` 列表——它们曾以
   顶层 `- id:` 形式存在，dsh TUI/web 从未加载过 GLM MCP（`--dump-config | head`
   必查 not found 警告）。同批修复：stdio `command` 一律用 fnm 绝对路径
   （`~/.local/share/fnm/aliases/default/bin/npx`，源 `.tmpl` 由 chezmoi 渲染
