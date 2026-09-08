@@ -31,3 +31,11 @@ scripts
 {{ if ne .chezmoi.os "linux" }}
 .config/picom.conf
 {{ end }}
+# ~/.claude — ONLY settings.json is managed (2026-09-08 decision, see AGENTS.md);
+# everything else is per-machine volatile/private state or tool-managed:
+# skills/ (~/.agents/skills symlink pool + 3 hand-written dirs) and hooks/
+# (herdr installs & overwrites herdr-agent-state.sh) must never be re-added.
+# NB: keep `.claude/*` (single star) — `/**` also matches the dir itself and
+# defeats the `!` negation below (verified chezmoi v2.72).
+.claude/*
+!.claude/settings.json

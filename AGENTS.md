@@ -56,6 +56,8 @@ what is tracked:
 ├── dot_local/           # → ~/.local/ (machine-profile Zsh link)
 ├── dot_condarc          # → ~/.condarc
 ├── dot_cargo/           # → ~/.cargo/
+├── dot_claude/          # → ~/.claude/ (Claude Code: settings.json ONLY, as .tmpl —
+│                        #   skills/ and hooks/ NOT managed, see Directory Map)
 ├── dot_gnupg/           # → ~/.gnupg/ (gpg-agent.conf is a darwin/linux template)
 ├── private_dot_ssh/     # → ~/.ssh/ loader; config.local remains host-local
 ├── scripts/             # bootstrap scripts — NOT deployed (see .chezmoiignore)
@@ -106,7 +108,22 @@ CLAUDE.md/AGENTS.md), `nvim/` (submodule at `.nvim/`), `aerc/`, `himalaya/`,
 `lazygit/`, `gnupg/`→promoted, `ssh/`, `git/`, `raycast/`, `neofetch/`,
 `snipaste/`, `btop/` (replaced deprecated `bashtop/` 2026-08), `herdr/`,
 `dsh/`, `.hermes/` (private Hermes Agent config submodule), `skills/`, `ai/`,
-`ortie/` (ortie contains credentials — git-crypt encrypted).
+`ortie/` (ortie contains credentials — git-crypt encrypted), `claude/`
+(`dot_claude/` → `~/.claude/`: **only** `settings.json` is chezmoi-managed, as
+`settings.json.tmpl` — chezmoi renders the home path; **never hardcode the
+macOS username in tracked files** (username = employer name; 2026-09-08
+privacy review found the repo's pushed state had zero occurrences — keep it
+that way). Claude Code rewrites the live `~/.claude/settings.json` at runtime
+(plugin toggles), so expect drift; port deliberate changes back to the
+`.tmpl`. Everything else in `~/.claude/` is runtime state
+(cache/daemon/backups). `skills/` is NOT managed: ~60 entries are symlinks
+into the `~/.agents/skills/` pool plus 3 hand-written real dirs
+(`anomaly-report`, `update-features` — work-project-coupled, belong in that
+project's `.claude/skills/`; `notion-todo-query` — personal). `hooks/
+herdr-agent-state.sh` is installed AND overwritten by herdr — never track it
+(chezmoi apply would clobber herdr's newer version with a stale one; herdr
+reinstalls it itself). Never `chezmoi add ~/.claude` wholesale, and don't
+re-add skills or hooks here without asking).
 
 **Self-hosted service stacks** (under `dot_config/`, each with a README):
 `adguard-home/`, `pihole/`, `emby/`, `karakeep/`, `bt/`. Applied **only** on
