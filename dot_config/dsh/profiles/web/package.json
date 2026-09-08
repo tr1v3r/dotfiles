@@ -2,9 +2,9 @@
   "name": "dsh-profile-web",
   "private": true,
   "dependencies": {
-    "@linxin666/dsh-client-ui-git-graph": "0.3.16",
-    "@linxin666/dsh-client-ui-skill-explorer": "0.3.16",
-    "@linxin666/dsh-web-all": "0.3.16",
+    "@linxin666/dsh-client-ui-git-graph": "0.3.17",
+    "@linxin666/dsh-client-ui-skill-explorer": "0.3.17",
+    "@linxin666/dsh-web-all": "0.3.17",
     "@liustack/modlens": "3.25.4",
     "@liustack/modsearch": "5.10.1",
     "@nanmicoder/dsh-agent-teams": "0.1.16-rc.1",
