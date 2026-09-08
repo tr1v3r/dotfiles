@@ -42,7 +42,10 @@ dsh/
 ## Profile 机制
 
 - 每个 profile 目录有 `package.json`（含 `dsh.profile.bundles` 列表）、`cordis.yml`
-  （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**）。
+  （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**；
+  2026-09-08 起源文件是 `cordis.patch.yml.tmpl`——chezmoi 模板渲染 `{{ .chezmoi.homeDir }}`，
+  目标部署为渲染后的真实文件**而非 symlink**：改源后要 `chezmoi apply`，直接改 live
+  文件会与源漂移）。
 - 配置树叠加顺序：`bundles` 各组合包的 patch → profile 的 `cordis.patch.yml` →
   home 级 `$DSH_HOME/cordis.patch.yml` → `--patch` 覆盖层。
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
@@ -148,6 +151,20 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 维护备忘
 
+- **⚠️ cordis.patch.yml 顶层 `- id:` ≠ 新增条目（2026-09-08 踩坑，勿回退）**：顶层
+  `- id:` 是按 id 定位**组合树里已有条目**的 patch，id 不存在时整条被静默丢弃，
+  `--dump-config` 只在输出头部留一行 `patch: entry "xxx" not found` 警告。新增插件
+  实例（如四个 `mcp-zai-*` GLM MCP server）必须写进 `- insert:` 列表——它们曾以
+  顶层 `- id:` 形式存在，dsh TUI/web 从未加载过 GLM MCP（`--dump-config | head`
+  必查 not found 警告）。同批修复：stdio `command` 一律用 fnm 绝对路径
+  （`~/.local/share/fnm/aliases/default/bin/npx`，源 `.tmpl` 由 chezmoi 渲染
+  homeDir——**绝对路径不得写死 macOS 用户名**，2026-09-08 隐私审查：用户名即
+  雇主名，公开仓库会坐实身份关联）——launchd 拉起的
+  `com.dsh.doctor` PATH 无 fnm，裸 `npx` spawn 失败。GUI/launchd 进程读不到
+  `~/.zshenv` 导出的 `ZAI_CODING_CN_API_KEY`，bigmodel MCP 会在 `tools/list`
+  拿应用层 401（传输层 initialize 不鉴权，健康检查到 tools/list 才炸）；曾以
+  LaunchAgent `local.env-secrets`（`launchctl setenv` 注入 GUI 域）解决，
+  2026-09-08 移除，替代方案待定。
 - **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
   （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
   `^0.2.5`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
