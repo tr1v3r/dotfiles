@@ -197,6 +197,14 @@ settings.yaml，否则 TUI 冲突复发。
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
   三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+  - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
+    `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
+    **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
+    TUI 预置成新版本）→ 打印 resume 命令后退出。`updateTui()` 只预置
+    allowBuilds/release-age，不会改写 patch 键。已给 profile 的 `pnpm-workspace.yaml`
+    加 `allowUnusedPatches: true`：这类升级先装上去（仅 `[WARN] patches were not used`，
+    期间 TUI 跑原版），补丁按上面的流程事后移植；也可用
+    `--config.allowUnusedPatches=true` 临时绕过一次。
 - ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
   （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
   整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
