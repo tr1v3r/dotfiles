@@ -66,7 +66,7 @@ dsh/
 |---|---|---|
 | `agent-default-model` | dsh-agent-default-model | 新会话默认模型 `{provider, model, reasoningEffort}` |
 | `llm-pi-ai` | dsh-llm-pi-ai | 多提供方适配器的 providers 字典（核心！） |
-| `llm-deepseek` | dsh-llm-deepseek | DeepSeek 官方适配器（本机未覆盖，走 entry 默认） |
+| `llm-deepseek` | dsh-llm-deepseek | DeepSeek 官方适配器（本机覆盖 `models` 目录，见下） |
 | `dsh-tui` / `dsh-better-sidebar` / `dsh-ssh` / `pet` | TUI 相关 | 界面/宠物/终端字体 |
 
 ⚠️ 关键语义（踩过坑）：`llm-pi-ai.providers` 是**字典**，`models` 列表**整体替换**
@@ -214,6 +214,14 @@ settings.yaml，否则 TUI 冲突复发。
   `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置直接改
   `~/.config/dsh/settings.yaml`（热加载立即生效）；chezmoi 源里的副本只是新机器
   引导快照，`chezmoi apply` 会覆盖运行时状态——漂移是常态，别盲目 apply。
+- **`llm-deepseek` 模型目录（2026-09-09）**：该分节按字段覆盖 entry 配置，但 `models`
+  是**数组、整体替换**（与 pi-ai 同语义）——省略时只公布内置三条
+  `deepseek-v4-flash` / `deepseek-v4-pro` / `deepseek-v4-flash-vision-exp`，
+  所以新增模型必须照抄这三条元数据再追加，否则它们从选择器消失。本机已把限时内测
+  `deepseek-v4.1-flash-expires-on-0910`（id 自带过期日 2026-09-10，官方目录尚未收录）
+  写进目录；每条 `name` 必填（`ctx.llm.listModels` 对缺 name 的条目抛 `INVALID_CATALOG`）。
+  ⚠️ 与 pi-ai 不同：分节 schema 校验失败不是「保留旧值」而是**注册即抛错、整棵树
+  fail loud**，改完先按 `Config(mergeLayers(base, section))` 验证再让 watcher 加载。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
