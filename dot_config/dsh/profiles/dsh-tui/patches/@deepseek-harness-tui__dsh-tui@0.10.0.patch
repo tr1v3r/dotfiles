@@ -1,8 +1,8 @@
 diff --git a/lib/types/components/CommandSuggestions.d.ts b/lib/types/components/CommandSuggestions.d.ts
-index 9cfdc0a..a506cbd 100644
+index e1e3590..cae5150 100644
 --- a/lib/types/components/CommandSuggestions.d.ts
 +++ b/lib/types/components/CommandSuggestions.d.ts
-@@ -31,5 +31,7 @@ export declare function CommandSuggestions({ commands, selectedIndex, columns, q
+@@ -30,5 +30,7 @@ export declare function CommandSuggestions({ commands, selectedIndex, columns, q
      onPick?: (index: number) => void;
      /** 滚轮步进（fullscreen）：±1 移动选中行。 */
      onWheelStep?: (step: 1 | -1) => void;
@@ -12,10 +12,10 @@ index 9cfdc0a..a506cbd 100644
  //# sourceMappingURL=CommandSuggestions.d.ts.map
 \ No newline at end of file
 diff --git a/lib/types/components/CommandSuggestions.js b/lib/types/components/CommandSuggestions.js
-index 5c2b430..665e2c8 100644
+index 445d33e..6dc353f 100644
 --- a/lib/types/components/CommandSuggestions.js
 +++ b/lib/types/components/CommandSuggestions.js
-@@ -21,7 +21,7 @@ import { SuggestionCard, cardContentWidth, splitQueryMatch } from './SuggestionC
+@@ -20,7 +20,7 @@ import { SuggestionCard, cardContentWidth, splitQueryMatch } from './SuggestionC
   * （bold 与 dim 在终端互斥，故提亮用非 dim 而非加粗）；选中行整行
   * suggestion 色、名字加粗、前置 ❯ 指针。
   */
@@ -24,7 +24,7 @@ index 5c2b430..665e2c8 100644
      if (commands.length === 0)
          return null;
      // Cap the command name column at 40% of the card's content width to ensure
-@@ -36,7 +36,9 @@ export function CommandSuggestions({ commands, selectedIndex, columns, query = '
+@@ -35,7 +35,9 @@ export function CommandSuggestions({ commands, selectedIndex, columns, query = '
      const below = commands.length - (startIndex + visible.length);
      // 前缀高亮取查询的最后一段 token（`/plan of` 高亮 `of` 命中的段）。
      const queryToken = query.replace(/^\//, '').match(/[^ \t]*$/)?.[0] ?? '';
@@ -35,7 +35,7 @@ index 5c2b430..665e2c8 100644
      const footer = above > 0 || below > 0
          ? [
              above > 0 ? t('sugg-more-above', { n: above }) : null,
-@@ -45,7 +47,7 @@ export function CommandSuggestions({ commands, selectedIndex, columns, query = '
+@@ -44,7 +46,7 @@ export function CommandSuggestions({ commands, selectedIndex, columns, query = '
              .filter((part) => part !== null)
              .join(' · ')
          : null;
@@ -45,18 +45,18 @@ index 5c2b430..665e2c8 100644
              const tagText = command.tag ? `[${command.tag}] ` : '';
              const tagWidth = stringWidth(tagText);
 diff --git a/lib/types/components/PromptInput.js b/lib/types/components/PromptInput.js
-index f7744a7..5d47661 100644
+index 0cdde7b..da5efa8 100644
 --- a/lib/types/components/PromptInput.js
 +++ b/lib/types/components/PromptInput.js
-@@ -4,6 +4,7 @@ import stripAnsi from 'strip-ansi';
- import { readFile, unlink } from 'node:fs/promises';
- import { basename } from 'node:path';
+@@ -5,6 +5,7 @@ import { constants as fsConstants } from 'node:fs';
+ import { open, unlink } from 'node:fs/promises';
+ import { basename, resolve } from 'node:path';
  import { t } from '../i18n.js';
 +import { vimCanonicalKey } from '../utils/keymap.js';
  import { Box, Text, useInput, useTerminalSize, useTheme } from '../ui.js';
  import { EffortChargeGlyph } from './EffortChargeGlyph.js';
  import { EffortInputBorder } from './EffortInputBorder.js';
-@@ -146,6 +147,20 @@ function vimWordEnd(text, cursor) {
+@@ -219,6 +220,20 @@ function vimWordEnd(text, cursor) {
          i++;
      return i;
  }
@@ -77,7 +77,7 @@ index f7744a7..5d47661 100644
  // --- grapheme-cluster geometry ---------------------------------------------
  // The caret, editing keys, and wrapping MUST agree on one text unit. Mixing
  // UTF-16 code units (arrows/backspace), code points (wrap), and display
-@@ -249,6 +264,50 @@ const EDITOR_CHROME_ROWS = 5;
+@@ -322,6 +337,50 @@ const EDITOR_CHROME_ROWS = 5;
   * carries onDragStart), so the prompt detects the double-click itself.
   */
  const DOUBLE_CLICK_MS = 500;
@@ -126,9 +126,9 @@ index f7744a7..5d47661 100644
 +    return ranges;
 +};
  /**
-  * Claude Code style prompt input: rounded border box (top+bottom borders
+  * dsh-TUI prompt input: rounded border box (top+bottom borders
   * only), `❯ ` prompt char (dimmed while a turn is working), the text with a
-@@ -548,6 +607,37 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -735,6 +794,37 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
          !helpOpen &&
          !selectionActive &&
          fileEscRef.current !== mention?.start;
@@ -163,12 +163,12 @@ index f7744a7..5d47661 100644
 +    React.useEffect(() => {
 +        setSkillSelected(0);
 +    }, [skillGesture?.start, skillGesture?.query]);
-     /** Fold-block state + a synchronous mirror (setInput reads the ref).
-      *  Creating a block also drags a caret that sits inside it out to the
-      *  block's end (the block is atomic; typing continues after it). */
-@@ -670,6 +760,22 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
-         setInput(next, mention.start + insert.length);
-         setFileSelected(0);
+     /**
+      * The `[Image #N]` tokens of `text` that carry a live draft capability.
+      * These are atomic: the caret never rests inside one, ←/→ step over the
+@@ -994,6 +1084,22 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
+         replaceDraftImages(entry.images);
+         clearVimUndo();
      };
 +    /**
 +     * Accept a skill suggestion: replace ONLY the gesture token at the caret
@@ -189,7 +189,7 @@ index f7744a7..5d47661 100644
      const submitText = (text, notice) => {
          const trimmed = text.trim();
          if (!trimmed)
-@@ -838,6 +944,16 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -1212,6 +1318,16 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  return;
              }
          }
@@ -204,9 +204,9 @@ index f7744a7..5d47661 100644
 +            }
 +        }
          if (channel.working && value.trim() !== '') {
-             // CC's immediate-command semantics: /btw and /skills are exempt from
+             // Immediate-command semantics: /btw and /skills are exempt from
              // steering — neither command interrupts the running turn. Hidden
-@@ -947,7 +1063,7 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -1400,7 +1516,7 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
          // ONLY drops the highlight (text untouched), and Backspace/Delete
          // delete the selected span. Arrows/typing handle the selection at their
          // own arms below.
@@ -215,7 +215,7 @@ index f7744a7..5d47661 100644
              event.stopImmediatePropagation();
              clearSelection();
              return;
-@@ -1246,6 +1362,12 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -1824,6 +1940,12 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  acceptFile(file);
              return;
          }
@@ -228,7 +228,7 @@ index f7744a7..5d47661 100644
          if (key.tab && overlayOpen) {
              const command = suggestions[selectedCommand];
              if (command) {
-@@ -1309,6 +1431,10 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -1887,6 +2009,10 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  setFileSelected(index => index <= 0 ? fileMatches.length - 1 : index - 1);
                  return;
              }
@@ -239,7 +239,7 @@ index f7744a7..5d47661 100644
              // With a fold block the caret in the tail walks the TAIL's lines
              // (the block is one atomic row); the first tail line steps over the
              // block to its head.
-@@ -1358,6 +1484,10 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -1942,6 +2068,10 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  setFileSelected(index => index >= fileMatches.length - 1 ? 0 : index + 1);
                  return;
              }
@@ -250,7 +250,7 @@ index f7744a7..5d47661 100644
              // Mirror of the tail-side ↑ walk: with a fold block the caret walks
              // the TAIL's lines; past its last line it falls through to the
              // overlay/history handling below.
-@@ -1541,6 +1671,10 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2140,6 +2270,10 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
              const bounds = graphemeBoundaries(value);
              const pending = vimPendingRef.current;
              vimPendingRef.current = '';
@@ -261,7 +261,7 @@ index f7744a7..5d47661 100644
              // Operator pending (`d`): the second key picks the target.
              if (pending === 'd') {
                  switch (input) {
-@@ -1620,6 +1754,9 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2215,6 +2349,9 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  case 'b':
                      setInput(value, vimWordBackward(value, cursor));
                      return;
@@ -271,7 +271,7 @@ index f7744a7..5d47661 100644
                  case 'x': { // delete the character at the caret; at the very end of
                      // the text delete the last character (vim: the caret sits ON the
                      // last char after `$`, so `x` must still delete it). Same rule
-@@ -1705,14 +1842,14 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2300,14 +2437,14 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
          if (vimEnabledRef.current) {
              if (vimInsertRef.current) {
                  // INSERT: Esc returns to NORMAL instead of the clear/rewind path.
@@ -288,7 +288,7 @@ index f7744a7..5d47661 100644
                  if (key.escape) {
                      // NORMAL: Esc cancels a pending operator and otherwise no-ops
                      // (the clear/rewind double-Esc semantics belong to non-vim mode).
-@@ -1782,6 +1919,12 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2379,6 +2516,12 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  fileEscRef.current = mention?.start ?? -1;
                  return;
              }
@@ -301,7 +301,7 @@ index f7744a7..5d47661 100644
              // With pending messages while working, Esc = interrupt and deliver
              // them right away (Codex's "interrupt and send immediately"): the
              // turn is aborted and each message is re-queued once it settles.
-@@ -1971,6 +2114,13 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2574,6 +2717,13 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
              ...visualLineRanges(tail, inputWidth).map(([s, e]) => [s + block.end, e + block.end]),
          ]
          : visualLineRanges(value, inputWidth);
@@ -315,7 +315,7 @@ index f7744a7..5d47661 100644
      /**
       * Inverse runs for one rendered row, shared by the inline prompt and the
       * expanded editor: the selection's intersection (if any) and the caret
-@@ -1981,6 +2131,10 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2584,14 +2734,20 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
       * emoji as one glyph; at the text end it shows a blank inverse cell like
       * the empty-input caret (appended after everything, so a selection
       * ending there cannot swallow it).
@@ -325,86 +325,77 @@ index f7744a7..5d47661 100644
 +     * so a selection or the caret block inside a gesture stays legible.
       */
      const rowHighlightPieces = (text, absoluteLine) => {
-         const intervals = [];
-@@ -2010,18 +2164,41 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+         const [rowStart] = lineRanges[absoluteLine] ?? [0, 0];
+         // Per-character style: 0 plain, 1 chip (a staged token), 2 inverse
+-        // (selection or caret cluster). Inverse wins over chip.
++        // (selection or caret cluster), 3 accent (a mid-line skill gesture
++        // token). Inverse wins over chip; both win over accent.
+         const PLAIN = 0;
+         const CHIP = 1;
+         const INVERSE = 2;
++        const ACCENT = 3;
+         const kinds = new Uint8Array(text.length);
+         const fill = (lo, hi, kind) => {
+             for (let i = Math.max(lo, 0); i < Math.min(hi, text.length); i++)
+@@ -2617,6 +2773,16 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
              else
-                 runs.push([s, e]);
+                 endBlankCaret = col === text.length;
          }
--        const pieces = [];
--        let pos = 0;
-+        // Skill-gesture tokens crossing this row, clipped to row-local
-+        // [lo, hi) through the SAME row-range mapping the selection uses.
-+        const accents = [];
-+        if (skillTokenRanges.length > 0) {
-+            const [rowStart] = lineRanges[absoluteLine] ?? [0, 0];
-+            for (const [gStart, gEnd] of skillTokenRanges) {
-+                const lo = Math.min(Math.max(gStart - rowStart, 0), text.length);
-+                const hi = Math.min(Math.max(gEnd - rowStart, 0), text.length);
-+                if (hi > lo)
-+                    accents.push([lo, hi]);
-+            }
++        // Mid-line skill gesture tokens render in the prompt accent color,
++        // clipped to the row through the same row-range mapping; chips and
++        // inverse (selection / caret cluster) keep winning on overlap.
++        for (const [gStart, gEnd] of skillTokenRanges) {
++            const lo = Math.max(gStart - rowStart, 0);
++            const hi = Math.min(gEnd - rowStart, text.length);
++            for (let i = lo; i < hi; i++)
++                if (kinds[i] === PLAIN)
++                    kinds[i] = ACCENT;
 +        }
-+        // Partition the row at every interval edge; a segment is inverse
-+        // when inside a run, else accent when inside a gesture, else plain.
-+        const inInterval = (list, at) => list.some(([s, e]) => at >= s && at < e);
-+        const cuts = new Set([0, text.length]);
-         for (const [s, e] of runs) {
--            if (s > pos)
--                pieces.push({ text: text.slice(pos, s), inverse: false });
--            pieces.push({ text: text.slice(s, e), inverse: true });
--            pos = Math.max(pos, e);
-+            cuts.add(s);
-+            cuts.add(e);
-+        }
-+        for (const [s, e] of accents) {
-+            cuts.add(s);
-+            cuts.add(e);
-+        }
-+        const points = [...cuts].sort((a, b) => a - b);
-+        const pieces = [];
-+        for (let i = 0; i + 1 < points.length; i++) {
-+            const from = points[i];
-+            const to = points[i + 1];
-+            const inverse = inInterval(runs, from);
-+            const accent = !inverse && inInterval(accents, from);
-+            pieces.push({ text: text.slice(from, to), inverse, accent });
+         const pieces = [];
+         let pos = 0;
+         while (pos < text.length) {
+@@ -2624,11 +2790,11 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
+             let end = pos + 1;
+             while (end < text.length && kinds[end] === kind)
+                 end++;
+-            pieces.push({ text: text.slice(pos, end), inverse: kind === INVERSE, chip: kind === CHIP });
++            pieces.push({ text: text.slice(pos, end), inverse: kind === INVERSE, chip: kind === CHIP, accent: kind === ACCENT });
+             pos = end;
          }
--        if (pos < text.length)
--            pieces.push({ text: text.slice(pos), inverse: false });
          if (endBlankCaret)
--            pieces.push({ text: ' ', inverse: true });
-+            pieces.push({ text: ' ', inverse: true, accent: false });
+-            pieces.push({ text: ' ', inverse: true, chip: false });
++            pieces.push({ text: ' ', inverse: true, chip: false, accent: false });
          return pieces;
      };
      const rendered = visibleLines.map((line, index) => {
-@@ -2038,7 +2215,7 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2645,7 +2811,7 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
          const text = withPrefix ? truncateToWidth(line, inputWidth - prefixCols) : line;
          const prefix = withPrefix ? _jsx(Text, { dimColor: true, children: prefixLabel }) : null;
          const pieces = rowHighlightPieces(text, absoluteLine);
--        return (_jsxs(Text, { wrap: "truncate-end", children: [prefix, pieces.length === 0 ? ' ' : pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
-+        return (_jsxs(Text, { wrap: "truncate-end", children: [prefix, pieces.length === 0 ? ' ' : pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.accent ? (_jsx(Text, { color: promptAccent, bold: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
+-        return (_jsxs(Text, { wrap: "truncate-end", children: [prefix, pieces.length === 0 ? ' ' : pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.chip ? (_jsx(Text, { color: "suggestion", children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
++        return (_jsxs(Text, { wrap: "truncate-end", children: [prefix, pieces.length === 0 ? ' ' : pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.chip ? (_jsx(Text, { color: "suggestion", children: piece.text }, pieceIndex)) : piece.accent ? (_jsx(Text, { color: promptAccent, bold: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
      });
      // ── 展开态编辑行 ────────────────────────────────────────────────────
      // Logical line number per visual row (a wrapped continuation keeps its
-@@ -2063,7 +2240,7 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -2670,7 +2836,7 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                  ? ' '.repeat(editorNoWidth)
                  : String(logicalNo + 1).padStart(editorNoWidth, ' ');
              const pieces = rowHighlightPieces(line, absoluteLine);
--            return (_jsxs(Text, { wrap: "truncate-end", backgroundColor: isCaretRow ? 'toolCardBackgroundDim' : undefined, children: [_jsx(Text, { dimColor: !isCaretRow, bold: isCaretRow, color: isCaretRow ? promptAccent : undefined, children: `${gutterLabel} │ ` }), pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
-+            return (_jsxs(Text, { wrap: "truncate-end", backgroundColor: isCaretRow ? 'toolCardBackgroundDim' : undefined, children: [_jsx(Text, { dimColor: !isCaretRow, bold: isCaretRow, color: isCaretRow ? promptAccent : undefined, children: `${gutterLabel} │ ` }), pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.accent ? (_jsx(Text, { color: promptAccent, bold: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
+-            return (_jsxs(Text, { wrap: "truncate-end", backgroundColor: isCaretRow ? 'toolCardBackgroundDim' : undefined, children: [_jsx(Text, { dimColor: !isCaretRow, bold: isCaretRow, color: isCaretRow ? promptAccent : undefined, children: `${gutterLabel} │ ` }), pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.chip ? (_jsx(Text, { color: "suggestion", children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
++            return (_jsxs(Text, { wrap: "truncate-end", backgroundColor: isCaretRow ? 'toolCardBackgroundDim' : undefined, children: [_jsx(Text, { dimColor: !isCaretRow, bold: isCaretRow, color: isCaretRow ? promptAccent : undefined, children: `${gutterLabel} │ ` }), pieces.map((piece, pieceIndex) => piece.inverse ? (_jsx(Text, { inverse: true, children: piece.text }, pieceIndex)) : piece.chip ? (_jsx(Text, { color: "suggestion", children: piece.text }, pieceIndex)) : piece.accent ? (_jsx(Text, { color: promptAccent, bold: true, children: piece.text }, pieceIndex)) : (piece.text))] }, absoluteLine));
          })
          : null;
      // Peek card content: the BLOCK's text wrapped to the card's inner width,
-@@ -2295,7 +2472,7 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
-     // 覆盖的转录行会留空（见 Chat.tsx dialogOverlayOpen 注释）。展开态由
+@@ -2936,7 +3102,7 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
      // 全屏编辑器接管，内联浮层全部撤下。
-     const floatersOpen = !expanded &&
+     const floatersOpen = !suspended &&
+         !expanded &&
 -        (helpOpen || channel.pending.length > 0 || fileOverlayOpen || overlayOpen || peekOpen);
 +        (helpOpen || channel.pending.length > 0 || fileOverlayOpen || skillOverlayOpen || overlayOpen || peekOpen);
-     // 顶边框右侧的会话名标签（CC 风格 chip）：色随强调色；超宽截断，宽度
+     // 顶边框右侧的会话名标签 chip：色随强调色；超宽截断，宽度
      // 随终端列数伸缩但不超过 28 显示单元。默认关闭——`/settings` 的
      // 「会话名标签」开关（dsh-tui.promptSessionLabel）开启后显示。
-@@ -2396,7 +2573,17 @@ export function PromptInput({ channel, helpOpen, onToggleHelp, onRunCommand, sel
+@@ -3048,7 +3214,17 @@ export function PromptInput({ channel, suspended = false, helpOpen, onToggleHelp
                          // 滚轮 = 移动选中行（与 ↑/↓ 同路径，窗口跟随）
                          onWheelStep: (step) => {
                              setFileSelected(i => Math.max(0, Math.min(fileMatches.length - 1, i + step)));
@@ -424,20 +415,20 @@ index f7744a7..5d47661 100644
                          onPick: (index) => {
                              const command = suggestions[index];
 diff --git a/lib/types/dsh-adapter/plugin.js b/lib/types/dsh-adapter/plugin.js
-index 15a6f44..5a64860 100644
+index 947305e..07d2c0b 100644
 --- a/lib/types/dsh-adapter/plugin.js
 +++ b/lib/types/dsh-adapter/plugin.js
-@@ -24,7 +24,7 @@ import { resolveSessionCwd } from '../utils/workspaceRoot.js';
+@@ -27,7 +27,7 @@ import { resolveSessionCwd } from '../utils/workspaceRoot.js';
  import { beginRestartAttempt, checkForTuiUpdate, installedTuiVersion, isBootDeadlockTarget, isStandaloneRuntime, isVersionNewer, logRestartEvent, resolveDshProfileName, resolveTuiUpdateTarget, restartTui, updateTuiAndRestart, writeHandoffNotice } from '../update.js';
  import { getLang, isLang, resolveStartupLang, setLang, t, writeLangPref } from '../i18n.js';
  import { DEFAULT_PAGE_MARGIN, DEFAULT_STATUS_BAR, applyPageMargin, isPageMarginMode, normalizePageMargin, normalizeScrollGutter, normalizeStatusBar, normalizeToolBackground, parsePageMarginSpec } from '../tuiDisplayPrefs.js';
 -import { draftComboConflicts, effectiveComboString, parseComboDraft, setKeymapOverrides, SHORTCUT_ACTIONS, } from '../utils/keymap.js';
 +import { draftComboConflicts, effectiveComboString, parseComboDraft, setKeymapOverrides, setVimKeys, SHORTCUT_ACTIONS, VIM_ACTIONS, } from '../utils/keymap.js';
- import { detectLegacyEnv, migrateLegacyDataDir, RENAMED_ENV } from '../utils/paths.js';
  import { attachHerdrIntegration } from '../herdr.js';
  import { logMouseDebug } from '../utils/debug.js';
-@@ -577,6 +577,11 @@ export async function apply(ctx, config) {
-             // action (see src/utils/keymap.ts). Unset keeps the default binding
+ import { Chat } from '../screens/Chat.js';
+@@ -573,6 +573,11 @@ export async function apply(ctx, config) {
+             // action (see the keymap utility). Unset keeps the default binding
              // and the section's format() shows the effective combos.
              shortcuts: Schema.object(Object.fromEntries(SHORTCUT_ACTIONS.map(action => [action.id, Schema.string().required(false)]))).required(false),
 +            // `/vim` normal-mode key overrides, one optional single-character
@@ -448,9 +439,9 @@ index 15a6f44..5a64860 100644
          }));
          const applyLayout = (value) => {
              channel.setDiffLayout(value.diffLayout ?? config.diffLayout ?? 'auto');
-@@ -644,6 +649,23 @@ export async function apply(ctx, config) {
-             }
-             setKeymapOverrides(merged);
+@@ -658,6 +663,23 @@ export async function apply(ctx, config) {
+             const level = next === null || next === 'auto' ? undefined : next;
+             channel.setDefaultEffort(level);
          };
 +        // Vim key overrides resolve like shortcuts: settings user layer over
 +        // cordis.yml, unset everywhere keeps the registry default. Applied
@@ -472,12 +463,12 @@ index 15a6f44..5a64860 100644
          const apply = (next) => {
              applyLayout(next);
              applyWhale(next);
-@@ -651,6 +673,7 @@ export async function apply(ctx, config) {
-             applyLang(next);
+@@ -667,6 +689,7 @@ export async function apply(ctx, config) {
              applyDisplay(next);
+             applyEffortDefault(next);
              applyShortcuts(next);
 +            applyVimKeys(next);
-             applyFullscreen(next);
+             applyRendererSettings(next);
          };
          // One-time fullscreen factory-default migration (companion to the
 diff --git a/lib/types/utils/keymap.js b/lib/types/utils/keymap.js

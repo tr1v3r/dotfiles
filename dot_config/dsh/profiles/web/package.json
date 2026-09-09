@@ -2,24 +2,24 @@
   "name": "dsh-profile-web",
   "private": true,
   "dependencies": {
-    "@linxin666/dsh-client-ui-git-graph": "0.3.17",
-    "@linxin666/dsh-client-ui-skill-explorer": "0.3.17",
-    "@linxin666/dsh-web-all": "0.3.17",
+    "@linxin666/dsh-client-ui-git-graph": "0.3.18",
+    "@linxin666/dsh-client-ui-skill-explorer": "0.3.18",
+    "@linxin666/dsh-web-all": "0.3.18",
     "@liustack/modlens": "3.26.1",
     "@liustack/modsearch": "5.10.2",
     "@nanmicoder/dsh-agent-teams": "0.1.16-rc.1",
     "@tt-a1i/archify-dsh": "^0.1.0",
     "@wxg-prc-cpg/browser-skill-dsh-plugin": "0.2.0",
     "dsh-at-file": "^0.6.3",
-    "dsh-better-sidebar": "^0.18.0",
+    "dsh-better-sidebar": "^0.18.1",
     "dsh-builtin-browser": "^0.1.21",
-    "dsh-context": "^0.46.0",
+    "dsh-context": "^0.47.0",
     "dsh-fetch-file": "^0.1.2",
     "dsh-holdem": "^0.3.0",
     "dsh-memory": "^0.1.0",
-    "dsh-quote-followup": "^0.2.5",
-    "dshmarket": "1.45.0",
-    "electron": "^44.2.0"
+    "dsh-quote-followup": "^0.2.6",
+    "dshmarket": "1.45.1",
+    "electron": "^44.3.0"
   },
   "dsh": {
     "profile": {
