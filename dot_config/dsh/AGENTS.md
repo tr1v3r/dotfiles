@@ -51,7 +51,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0-beta.5）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
