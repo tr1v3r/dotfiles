@@ -2,6 +2,7 @@
   "name": "dsh-profile-web",
   "private": true,
   "dependencies": {
+    "@changfenhuang/dsh-annotation": "^1.4.9",
     "@linxin666/dsh-client-ui-git-graph": "0.3.18",
     "@linxin666/dsh-client-ui-skill-explorer": "0.3.18",
     "@linxin666/dsh-web-all": "0.3.18",
@@ -42,7 +43,8 @@
         "dsh-holdem",
         "dsh-memory",
         "dsh-quote-followup",
-        "dshmarket"
+        "dshmarket",
+        "@changfenhuang/dsh-annotation"
       ]
     }
   }
