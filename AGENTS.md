@@ -107,7 +107,7 @@ CLAUDE.md/AGENTS.md), `nvim/` (submodule at `.nvim/`), `aerc/`, `himalaya/`,
 `kitty/`, `iterm2/`, `tmux/`, `tmux-powerline/`, `ranger/`, `yazi/`,
 `lazygit/`, `gnupg/`→promoted, `ssh/`, `git/`, `raycast/`, `neofetch/`,
 `snipaste/`, `btop/` (replaced deprecated `bashtop/` 2026-08), `herdr/`,
-`dsh/`, `.hermes/` (private Hermes Agent config submodule), `skills/`, `ai/`,
+`dsh/`, `mise/` (Go 版本管理；node 仍在 fnm), `.hermes/` (private Hermes Agent config submodule), `skills/`, `ai/`,
 `ortie/` (ortie contains credentials — git-crypt encrypted), `claude/`
 (`dot_claude/` → `~/.claude/`: **only** `settings.json` is chezmoi-managed, as
 `settings.json.tmpl` — chezmoi renders the home path; **never hardcode the

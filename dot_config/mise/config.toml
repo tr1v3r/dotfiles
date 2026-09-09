@@ -1,0 +1,29 @@
+# mise 全局配置 — chezmoi 源（目标 ~/.config/mise/config.toml，符号链接）
+#
+# 职责边界：**mise 只管 Go**。node 仍由 fnm 管理（见 .zsh/zinit.zsh），
+# 不要在这里声明 node，否则会和 fnm 的多 shell PATH 打架。
+#
+# 版本存在 ~/.local/share/mise/installs/go/<ver>/，由 mise 自己下载安装，
+# 已与旧的 /usr/local/go<ver> + symlink 布局完全脱钩（旧目录已废弃）。
+#
+# 常用命令：
+#   mise ls go                  列已装版本
+#   mise use -g go@1.28         改全局默认（原子写回本文件，会穿透符号链接）
+#   mise use go@1.23            项目级固定（写项目 mise.toml）
+#   mise install go@1.22        只装不声明（不改变默认版本）
+#   mise upgrade go             每条声明升到各自 major 的最新 patch，旧 patch 自动清理
+#   mise ls-remote go           列可用版本
+#   mise exec -- go version     非交互场景
+
+[tools]
+# 数组第一个是默认版本（实测 `["1.23", "1.27"]` 下 `go version` 是 1.23.12），
+# 所以 1.27 必须放最前。其余条目是"声明保留"：`mise prune` 不会删它们，
+# `mise upgrade go` 会把每条升到各自 major 的最新 patch。
+# 项目里要固定版本就写项目 mise.toml（如 `go = "1.23"`），会覆盖这里的默认。
+go = ["1.27", "1.26", "1.25", "1.24", "1.23"]
+
+[settings.go]
+# 不要把 GOBIN 指到 mise 的 installs 目录，让 `go install` 继续落到
+# ${GOPATH:-$HOME/go}/bin —— .zsh/profile.zsh 里的 ~/go/bin PATH 项依赖它，
+# 现有 30+ 个 Go 工具（GO_PACKAGES）都在那里
+set_gobin = false
