@@ -2,39 +2,17 @@ ui-onboarding:
   welcomeNoticeVersion: 2026-08-13.1
 agent-default-model:
   provider: deepseek-official
-  model: deepseek-v4-flash
+  model: deepseek-flash
   reasoningEffort: max
-# DeepSeek 官方适配器（deepseek-official 路由）。settings 分节按字段覆盖 entry 配置，
-# 但 `models` 是**数组、整体替换**（不是逐条追加）：省略时只公布内置目录的
-# deepseek-v4-flash / deepseek-v4-pro / deepseek-v4-flash-vision-exp 三条，
-# 所以这里照抄这三条的内置元数据，再追加限时内测的 V4.1 Flash
-# （deepseek-v4.1-flash-expires-on-0910，id 自带过期日 2026-09-10），
-# 让它出现在模型选择器 / 模型列表里。
-# 未列出的 model id 仍原样透传给协议（纯文本路由），只是不出现在可选列表。
+# DeepSeek 官方适配器（deepseek-official 路由）。dsh 0.1.5-rc.1 的内置目录已含
+# deepseek-flash（= DeepSeek-V4.1-Flash，text+image），故**不再手写 models**：
+# 手写列表是整体替换，会连带丢掉 0.1.5 新增的 systemPromptUpdate: in-history
+# （agent loop 靠它决定系统提示词改动是否按 in-history 提交；丢了就只有首位
+# system 消息生效）。旧名 deepseek-v4-flash / v4-pro / vision-exp 仍在内置目录里
+# 作为兼容项。唯一要补的是输出上限：内置条目没写 maxTokens，会落路由默认 256000，
+# 而官方上限是 384K=393216（API 实测回显 [1, 393216]），故在路由级抬高。
 llm-deepseek:
-  models:
-    - id: deepseek-v4-flash
-      name: DeepSeek-V4-Flash
-      description: Fast, efficient, and economical; suited to focused, routine, or parallel tasks.
-      contextWindow: 1000000
-    - id: deepseek-v4-pro
-      name: DeepSeek-V4-Pro
-      description: Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.
-      contextWindow: 1000000
-    - id: deepseek-v4-flash-vision-exp
-      name: DeepSeek-V4-Flash-Vision-Exp
-      contextWindow: 1000000
-      inputModalities:
-        - text
-        - image
-      imagePixelBudget: 640000
-      imageMaxBytes: 1048576
-    # 尚未进入内置目录的限时内测模型；不写 contextWindow 会落 defaultContextWindow（同为 1M），
-    # 不写 maxTokens 则沿用路由默认（256000），与它当前未登记时的行为一致。
-    - id: deepseek-v4.1-flash-expires-on-0910
-      name: DeepSeek-V4.1-Flash (Beta)
-      description: Limited-time V4.1 Flash beta; the id carries its own expiry date, so requests stop working after 2026-09-10.
-      contextWindow: 1000000
+  maxTokens: 393216
 llm-pi-ai:
   providers:
     zai-coding-cn:
@@ -42,12 +20,6 @@ llm-pi-ai:
       # GLM-5.3 尚未进入本机捆绑目录（pi-ai 0.82.1），故手动声明模型列表。
       # models 是整体替换：前六个照抄内置目录以保留其元数据，最后追加 glm-5.3。
       models:
-        - id: glm-4.5-air
-        - id: glm-4.7
-        - id: glm-5-turbo
-        - id: glm-5.1
-        - id: glm-5.2
-        - id: glm-5v-turbo
         - id: glm-5.3
           contextWindow: 1000000
           maxTokens: 131072

@@ -31,6 +31,33 @@ scripts
 {{ if ne .chezmoi.os "linux" }}
 .config/picom.conf
 {{ end }}
+# ~/.config/dsh mixes managed configuration with generated/runtime state.
+# chezmoi does not read dot_config/dsh/.gitignore, so mirror its exclusions
+# here. In particular, dependencies may contain run_* files that chezmoi would
+# otherwise mistake for apply scripts and execute.
+.config/dsh/.credentials.yaml
+.config/dsh/.anonymous-user-id
+.config/dsh/bin
+.config/dsh/dsh-auth
+.config/dsh/sessions
+.config/dsh/storages
+.config/dsh/.agent-presets
+.config/dsh/memory
+.config/dsh/pet.json
+.config/dsh/task-board
+.config/dsh/attachments
+.config/dsh/dsh-builtin-browser-host
+.config/dsh/llm-deepseek
+.config/dsh/skins
+.config/dsh/skin-center
+.config/dsh/.dsh-market
+.config/dsh/skills
+.config/dsh/profiles/*/.dsh-market
+.config/dsh/profiles/*/.dsh-module-fallback
+.config/dsh/profiles/*/package.json.bak
+.config/dsh/profiles/*/cordis.yml
+.config/dsh/**/pnpm-lock.yaml
+.config/dsh/**/node_modules
 # ~/.claude — ONLY settings.json is managed (2026-09-08 decision, see AGENTS.md);
 # everything else is per-machine volatile/private state or tool-managed:
 # skills/ (~/.agents/skills symlink pool + 3 hand-written dirs) and hooks/

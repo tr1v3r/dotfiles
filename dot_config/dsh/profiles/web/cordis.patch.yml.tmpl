@@ -20,6 +20,18 @@
 - id: download
   disabled: true
 
+# dsh-agent-teams 0.1.16-rc.1 仅支持 Harness 0.1.2；在 0.1.5-rc.1 下
+# 无法安装 retired-member guard，会使整个 web 插件树启动失败。
+- id: agent-teams
+  disabled: true
+
+# dsh-web-all 0.3.20 bundles dsh-better-sidebar@0.19.0-alpha.1, while this
+# profile directly loads the DSH 0.1.5-rc.1-compatible stable release. Keep the
+# direct bundle first and disable the aggregate entry so only one plugin owns
+# /sidebar/api.
+- id: web-ui-better-sidebar
+  disabled: true
+
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
@@ -78,3 +90,5 @@
           Authorization: !!js "'Bearer ' + (process.env.ZAI_CODING_CN_API_KEY || '')"
         toolCallTimeoutMs: 180000
         failOnStartupError: false
+- id: dsh-annotation
+  disabled: true
