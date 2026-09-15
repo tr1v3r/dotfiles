@@ -7,3 +7,9 @@
 **/findings.md
 **/progress.md
 **/task_plan.md
+
+# dsh-agent-teams runtime state (per-member mailboxes, team records,
+# retired-member ids). Host-plane state like session logs, not project
+# source: it churns on every message and carries local paths and session
+# ids, so keep it out of every repo at once rather than per-repo.
+**/.agent-teams/
