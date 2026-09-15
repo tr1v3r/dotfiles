@@ -3,9 +3,9 @@
   "private": true,
   "dependencies": {
     "@changfenhuang/dsh-annotation": "^1.4.9",
-    "@linxin666/dsh-client-ui-git-graph": "0.3.20",
-    "@linxin666/dsh-client-ui-skill-explorer": "0.3.20",
-    "@linxin666/dsh-web-all": "0.3.20",
+    "@linxin666/dsh-client-ui-git-graph": "0.3.22",
+    "@linxin666/dsh-client-ui-skill-explorer": "0.3.22",
+    "@linxin666/dsh-web-all": "0.3.22",
     "@liustack/modlens": "3.26.1",
     "@liustack/modsearch": "5.10.2",
     "@nanmicoder/dsh-agent-teams": "0.1.17-rc.1",
