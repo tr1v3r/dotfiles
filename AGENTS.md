@@ -24,7 +24,7 @@ the repo.
 
 ## Critical: git-crypt encrypted files
 
-This repo uses **git-crypt**. Paths in `.gitattributes` (all under `dot_config/`) are encrypted at rest in git:
+This repo uses **git-crypt**. Paths in `.gitattributes` are encrypted at rest in git:
 
 `dot_config/secrets/**`, `dot_config/age/keys.txt`, `dot_config/age/keys-pq.txt`, `dot_config/ssh/config`,
 `dot_config/aerc/accounts.conf`, `dot_config/git/work.config`,
@@ -33,7 +33,8 @@ This repo uses **git-crypt**. Paths in `.gitattributes` (all under `dot_config/`
 `dot_config/iterm2/com.googlecode.iterm2.plist`,
 `dot_config/adguard-home/conf/**`, `dot_config/pihole/.pihole.env`,
 `dot_config/emby/.env`, `dot_config/karakeep/.env`,
-`dot_config/himalaya/config.toml`, `dot_config/ortie/config.toml`.
+`dot_config/himalaya/config.toml`, `dot_config/ortie/config.toml`,
+`dot_trae/traecli.toml`.
 
 - After a fresh clone: `git-crypt unlock` (once per clone) before any
   `chezmoi apply`, otherwise chezmoi would deploy ciphertext.
@@ -58,6 +59,7 @@ what is tracked:
 ├── dot_cargo/           # → ~/.cargo/
 ├── dot_claude/          # → ~/.claude/ (Claude Code: settings.json ONLY, as .tmpl —
 │                        #   skills/ and hooks/ NOT managed, see Directory Map)
+├── dot_trae/            # → ~/.trae/ (selected TraeCode CLI config; git-crypt encrypted)
 ├── dot_gnupg/           # → ~/.gnupg/ (gpg-agent.conf is a darwin/linux template)
 ├── private_dot_ssh/     # → ~/.ssh/ loader; config.local remains host-local
 ├── scripts/             # bootstrap scripts — NOT deployed (see .chezmoiignore)
@@ -124,6 +126,8 @@ herdr-agent-state.sh` is installed AND overwritten by herdr — never track it
 (chezmoi apply would clobber herdr's newer version with a stale one; herdr
 reinstalls it itself). Never `chezmoi add ~/.claude` wholesale, and don't
 re-add skills or hooks here without asking).
+`trae/` (`dot_trae/` → `~/.trae/`: only `traecli.toml` is managed and
+git-crypt encrypted; the rest of `~/.trae/` remains runtime state).
 
 **Self-hosted service stacks** (under `dot_config/`, each with a README):
 `adguard-home/`, `pihole/`, `emby/`, `karakeep/`, `bt/`. Applied **only** on
