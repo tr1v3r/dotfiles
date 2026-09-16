@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.2-rc.1**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.5-rc.1**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -42,13 +42,16 @@ dsh/
 ## Profile 机制
 
 - 每个 profile 目录有 `package.json`（含 `dsh.profile.bundles` 列表）、`cordis.yml`
-  （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**）。
+  （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**；
+  2026-09-08 起源文件是 `cordis.patch.yml.tmpl`——chezmoi 模板渲染 `{{ .chezmoi.homeDir }}`，
+  目标部署为渲染后的真实文件**而非 symlink**：改源后要 `chezmoi apply`，直接改 live
+  文件会与源漂移）。
 - 配置树叠加顺序：`bundles` 各组合包的 patch → profile 的 `cordis.patch.yml` →
   home 级 `$DSH_HOME/cordis.patch.yml` → `--patch` 覆盖层。
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0-beta.5）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -63,7 +66,7 @@ dsh/
 |---|---|---|
 | `agent-default-model` | dsh-agent-default-model | 新会话默认模型 `{provider, model, reasoningEffort}` |
 | `llm-pi-ai` | dsh-llm-pi-ai | 多提供方适配器的 providers 字典（核心！） |
-| `llm-deepseek` | dsh-llm-deepseek | DeepSeek 官方适配器（本机未覆盖，走 entry 默认） |
+| `llm-deepseek` | dsh-llm-deepseek | DeepSeek 官方适配器（本机只覆盖 `maxTokens`，**不写 models**，见下） |
 | `dsh-tui` / `dsh-better-sidebar` / `dsh-ssh` / `pet` | TUI 相关 | 界面/宠物/终端字体 |
 
 ⚠️ 关键语义（踩过坑）：`llm-pi-ai.providers` 是**字典**，`models` 列表**整体替换**
@@ -141,16 +144,36 @@ settings.yaml，否则 TUI 冲突复发。
 - 活跃分支 `dev`；提交遵循 Conventional Commits（`chore(dsh/…)`、`fix(dsh)` 等）。
 - `dsh/.gitignore`：秘密与运行时状态一律忽略（`.credentials.yaml`、`sessions/`、
   `storages/`、`memory/`、`task-board/`、`attachments/`、`dsh-builtin-browser-host/`、
-  `llm-deepseek/`、`dsh-auth/`、`skills/`、`profiles/*/cordis.yml`、lockfile、node_modules）。
+  `llm-deepseek/`、`dsh-auth/`、`skills/`、`bin/`、`.dsh-module-fallback/`、
+  `profiles/*/cordis.yml`、`profiles/*/package.json.bak`、lockfile、node_modules）。
+- chezmoi 不读取这里的 `.gitignore`；新增运行时路径时必须同步根目录
+  `.chezmoiignore`。ignore 只阻止以后管理，不会拆除已经部署的 source symlink；若曾被
+  管理，先停 DSH、保全状态，再把目标物化为本机文件并清理 source 中的运行时副本。
+- `settings.yaml` 和 `skin-center-active.json` 没有模板变量，按仓库约定保持普通 source
+  文件并部署为 symlink；DSH 的运行时写入会直接反映到 source，提交前必须审查 diff。
 - ⚠️ gitignore 行内不支持 `#` 尾注释（会导致模式不匹配），要注释就单独一行。
 - 新增的 dsh 运行时目录出现为 `??` 时，先判断是不是状态目录 → 补进 dsh/.gitignore，
   **不要**随手 `git add`。
 
 ## 维护备忘
 
+- **⚠️ cordis.patch.yml 顶层 `- id:` ≠ 新增条目（2026-09-08 踩坑，勿回退）**：顶层
+  `- id:` 是按 id 定位**组合树里已有条目**的 patch，id 不存在时整条被静默丢弃，
+  `--dump-config` 只在输出头部留一行 `patch: entry "xxx" not found` 警告。新增插件
+  实例（如 `mcp-zai-*` GLM MCP server）必须写进 `- insert:` 列表——它们曾以
+  顶层 `- id:` 形式存在，dsh TUI/web 从未加载过 GLM MCP（`--dump-config | head`
+  必查 not found 警告）。同批修复：stdio `command` 一律用 fnm 绝对路径
+  （`~/.local/share/fnm/aliases/default/bin/npx`，源 `.tmpl` 由 chezmoi 渲染
+  homeDir——**绝对路径不得写死 macOS 用户名**，2026-09-08 隐私审查：用户名即
+  雇主名，公开仓库会坐实身份关联）——launchd 拉起的
+  `com.dsh.doctor` PATH 无 fnm，裸 `npx` spawn 失败。GUI/launchd 进程读不到
+  `~/.zshenv` 导出的 `ZAI_CODING_CN_API_KEY`，bigmodel MCP 会在 `tools/list`
+  拿应用层 401（传输层 initialize 不鉴权，健康检查到 tools/list 才炸）；曾以
+  LaunchAgent `local.env-secrets`（`launchctl setenv` 注入 GUI 域）解决，
+  2026-09-08 移除，替代方案待定。
 - **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
   （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
-  `^0.2.4`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  `^0.2.5`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
   Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
   composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
   模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
@@ -173,22 +196,61 @@ settings.yaml，否则 TUI 冲突复发。
   headless 跑一句话。已知未适配：`dsh-at-file`（≤0.6.3，import
   `settingsNamespace`）与 `dsh-fetch-file`（≤0.1.2，import `CallId`），已在
   `profiles/web/cordis.patch.yml` 里 `disabled: true` 顶住，**上游发适配版后
-  删那两行解禁**。
+  删那两行解禁**。（2026-09-10 复核：dsh 0.1.5-rc.1 的 `dsh-settings` 仍未导出
+  `settingsNamespace`、`dsh-llm` 仍未导出 `CallId`，两行继续保留。）
+- ⚠️ **dsh 0.1.5-rc.1 已装、TUI 尚未跟上**（2026-09-10 实测）：全局 dsh 与
+  dsh-base/-headless/-llm-deepseek 都是 0.1.5-rc.1（headless 真实 boot 通过、
+  TUI 横幅正常渲染），但 `@deepseek-harness-tui/dsh-tui@0.10.0` 只验证到
+  **0.1.2-rc.1**，启动时横幅警告「engine newer than the UI is validated against」。
+  要回到官方支持的组合：`npm i -g @deepseek-ai/dsh@0.1.2-rc.1`，或等 dsh-tui
+  发新版。另：TUI 的模型线路**不读 settings.yaml 的 `agent-default-model`**，
+  而是 `cordis.yml 完整对 → 持久化的 /model 选择 → 写死的 DEFAULT_MODEL_ROUTE
+  (deepseek-official/deepseek-v4-flash)`（`lib/types/modelRoute.js`），所以 TUI
+  横幅仍显示旧名 `deepseek-v4-flash`；要在 TUI 用 `deepseek-flash` 得在 TUI 内
+  `/model` 选一次（会持久化）。
 - ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
   `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
   三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+  - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
+    `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
+    **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
+    TUI 预置成新版本）→ 打印 resume 命令后退出。`updateTui()` 只预置
+    allowBuilds/release-age，不会改写 patch 键。已给 profile 的 `pnpm-workspace.yaml`
+    加 `allowUnusedPatches: true`：这类升级先装上去（仅 `[WARN] patches were not used`，
+    期间 TUI 跑原版），补丁按上面的流程事后移植；也可用
+    `--config.allowUnusedPatches=true` 临时绕过一次。
 - ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
   （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
   整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
   `pnpm patch` 拿到编辑目录 → 手工 `git diff --no-index` 生成单文件 diff（修掉
   `a/a/` 双层前缀）→ 放进 `patches/` + 挂 `patchedDependencies`。
-- ⚠️ **settings.yaml 目标是真实文件不是 symlink**（settings seam 会运行时改写它，
-  `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置直接改
-  `~/.config/dsh/settings.yaml`（热加载立即生效）；chezmoi 源里的副本只是新机器
-  引导快照，`chezmoi apply` 会覆盖运行时状态——漂移是常态，别盲目 apply。
+- ⚠️ **settings.yaml 目标是 symlink**（settings seam 会运行时改写它，
+  `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置可直接改
+  `~/.config/dsh/settings.yaml`（热加载立即生效），变更会同步落到 chezmoi source；
+  提交前必须审查并区分有意配置与 GUI 自动持久化状态。
+- **`llm-deepseek`（2026-09-10 起本机只配 `maxTokens`）**：settings 分节按字段覆盖
+  entry 配置，只有 `models` 是**数组、整体替换**。dsh **0.1.5-rc.1** 的内置目录已含
+  `deepseek-flash`（= DeepSeek-V4.1-Flash：1M ctx、text+image、带 0.1.5 新增的
+  `systemPromptUpdate: in-history`）+ 三条退役兼容名（`deepseek-v4-flash` /
+  `deepseek-v4-pro` / `deepseek-v4-flash-vision-exp`），所以**不要再手写 models**：
+  手写会连带丢掉 `systemPromptUpdate`（agent loop 靠它决定系统提示词改动是否按
+  in-history 提交，丢了就只有首位 system 消息生效）。本机因此只保留
+  `llm-deepseek.maxTokens: 393216`——内置条目没写 maxTokens，会落路由默认 256000，
+  而官方上限是 384K=393216（API 实测回显 `max_tokens` 合法区间 `[1, 393216]`）。
+  ⚠️ 版本差异：0.1.2-rc.1 的内置目录还是旧三条、**没有** `deepseek-flash`（那时只能
+  手写补上），0.1.5-rc.1 起才免维护。
+  另：V4-Flash / V4-Flash-Vision-Exp 已于 2026-09-10 下线、V4 Pro 于 09-14 12:00
+  起被路由到 V4.1 Flash；退役名（含内测名 `deepseek-v4.1-flash-expires-on-0910`）
+  实测仍被路由到 `deepseek-flash`，所以老会话照跑，只是不该再新选。
+  ⚠️ 与 pi-ai 不同：分节 schema 校验失败不是「保留旧值」而是**注册即抛错、整棵树
+  fail loud**，改完先按 `Config(mergeLayers(base, section))` 验证再让 watcher 加载。
+  ⚠️ **GUI 写盘会重排整个文件**：Models 页/模型选择器写 `agent-default-model` 时，
+  settings writer 按内存里的旧文档回写，会重现**过时注释**（2026-09-10 实测：新写在
+  `agent-default-model` 下的注释被昨天的旧注释覆盖，同时 description 被按 80 列折行）。
+  改完这个分节要复查文本，别只看值。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR

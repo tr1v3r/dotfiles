@@ -8,10 +8,17 @@ allowBuilds:
   protobufjs: false
 autoInstallPeers: false
 
+# patchedDependencies below is pinned to an exact version. Without this, any
+# `/update` version bump makes pnpm 11 abort the whole install with
+# ERR_PNPM_UNUSED_PATCH (the old key matches nothing), blocking the update.
+# Tolerate the stale key so the update lands, then port the patch to the new
+# baseline and re-pin the key (see dsh/AGENTS.md 维护备忘).
+allowUnusedPatches: true
+
 minimumReleaseAgeExclude:
-  - '@deepseek-harness-tui/dsh-tui@0.10.0-beta.5'
+  - '@deepseek-harness-tui/dsh-tui@0.10.1'
 
 nodeLinker: hoisted
 
 patchedDependencies:
-  '@deepseek-harness-tui/dsh-tui@0.10.0-beta.5': patches/@deepseek-harness-tui__dsh-tui@0.10.0-beta.5.patch
+  '@deepseek-harness-tui/dsh-tui@0.10.0': patches/@deepseek-harness-tui__dsh-tui@0.10.0.patch

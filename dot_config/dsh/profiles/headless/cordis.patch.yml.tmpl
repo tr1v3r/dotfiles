@@ -7,7 +7,8 @@
       config:
         serverName: firecrawl
         transport: stdio
-        command: npx
+        # 绝对路径：GUI/launchd 拉起的 dsh（com.dsh.doctor）PATH 里没有 fnm，裸 npx spawn 失败
+        command: {{ .chezmoi.homeDir }}/.local/share/fnm/aliases/default/bin/npx
         args:
           - -y
           - firecrawl-mcp@3.24.0

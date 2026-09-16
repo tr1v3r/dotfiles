@@ -2,8 +2,17 @@ ui-onboarding:
   welcomeNoticeVersion: 2026-08-13.1
 agent-default-model:
   provider: deepseek-official
-  model: deepseek-v4-flash
+  model: deepseek-flash
   reasoningEffort: max
+# DeepSeek 官方适配器（deepseek-official 路由）。dsh 0.1.5-rc.1 的内置目录已含
+# deepseek-flash（= DeepSeek-V4.1-Flash，text+image），故**不再手写 models**：
+# 手写列表是整体替换，会连带丢掉 0.1.5 新增的 systemPromptUpdate: in-history
+# （agent loop 靠它决定系统提示词改动是否按 in-history 提交；丢了就只有首位
+# system 消息生效）。旧名 deepseek-v4-flash / v4-pro / vision-exp 仍在内置目录里
+# 作为兼容项。唯一要补的是输出上限：内置条目没写 maxTokens，会落路由默认 256000，
+# 而官方上限是 384K=393216（API 实测回显 [1, 393216]），故在路由级抬高。
+llm-deepseek:
+  maxTokens: 393216
 llm-pi-ai:
   providers:
     zai-coding-cn:
@@ -11,12 +20,6 @@ llm-pi-ai:
       # GLM-5.3 尚未进入本机捆绑目录（pi-ai 0.82.1），故手动声明模型列表。
       # models 是整体替换：前六个照抄内置目录以保留其元数据，最后追加 glm-5.3。
       models:
-        - id: glm-4.5-air
-        - id: glm-4.7
-        - id: glm-5-turbo
-        - id: glm-5.1
-        - id: glm-5.2
-        - id: glm-5v-turbo
         - id: glm-5.3
           contextWindow: 1000000
           maxTokens: 131072

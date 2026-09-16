@@ -1,5 +1,6 @@
-# only diy_plugins/ and scripts/ are tracked; config.json, extensions/, ai/ stay ignored
+# only diy_plugins/, scripts/, ai/ (git-crypt) are tracked; config.json, extensions/ stay ignored
 /*
 !/.gitignore
 !/diy_plugins/
 !/scripts/
+!/ai/

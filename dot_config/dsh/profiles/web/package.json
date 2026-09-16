@@ -2,33 +2,34 @@
   "name": "dsh-profile-web",
   "private": true,
   "dependencies": {
-    "@linxin666/dsh-client-ui-git-graph": "0.3.16",
-    "@linxin666/dsh-client-ui-skill-explorer": "0.3.16",
-    "@linxin666/dsh-web-all": "0.3.16",
-    "@liustack/modlens": "3.25.4",
-    "@liustack/modsearch": "5.10.1",
-    "@nanmicoder/dsh-agent-teams": "0.1.16-rc.1",
+    "@changfenhuang/dsh-annotation": "^1.4.10",
+    "@linxin666/dsh-client-ui-git-graph": "0.3.22",
+    "@linxin666/dsh-client-ui-skill-explorer": "0.3.22",
+    "@linxin666/dsh-web-all": "0.3.22",
+    "@liustack/modlens": "3.26.1",
+    "@liustack/modsearch": "5.10.3",
+    "@nanmicoder/dsh-agent-teams": "0.1.18",
     "@tt-a1i/archify-dsh": "^0.1.0",
-    "@wxg-prc-cpg/browser-skill-dsh-plugin": "0.2.0",
+    "@wxg-prc-cpg/browser-skill-dsh-plugin": "0.2.1",
     "dsh-at-file": "^0.6.3",
-    "dsh-better-sidebar": "^0.18.0",
+    "dsh-better-sidebar": "^0.19.1",
     "dsh-builtin-browser": "^0.1.21",
-    "dsh-context": "^0.43.0",
+    "dsh-context": "^0.52.2",
     "dsh-fetch-file": "^0.1.2",
     "dsh-holdem": "^0.3.0",
     "dsh-memory": "^0.1.0",
-    "dsh-quote-followup": "^0.2.4",
-    "dshmarket": "1.44.0",
-    "electron": "^44.2.0"
+    "dsh-quote-followup": "^0.2.6",
+    "dshmarket": "1.47.0",
+    "electron": "^44.4.0"
   },
   "dsh": {
     "profile": {
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
+        "@changfenhuang/dsh-annotation",
         "@linxin666/dsh-client-ui-git-graph",
         "@linxin666/dsh-client-ui-skill-explorer",
-        "@linxin666/dsh-web-all",
         "@liustack/modlens",
         "@liustack/modsearch",
         "@nanmicoder/dsh-agent-teams",
@@ -42,7 +43,8 @@
         "dsh-holdem",
         "dsh-memory",
         "dsh-quote-followup",
-        "dshmarket"
+        "dshmarket",
+        "@linxin666/dsh-web-all"
       ]
     }
   }

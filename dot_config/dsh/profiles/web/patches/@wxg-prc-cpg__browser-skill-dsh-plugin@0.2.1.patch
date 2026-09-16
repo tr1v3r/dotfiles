@@ -1,0 +1,8 @@
+diff --git a/lib/client.cjs b/lib/client.cjs
+--- a/lib/client.cjs
++++ b/lib/client.cjs
+@@ -4462 +4462,3 @@
+-		function* leafNodes(node) {
++		function* leafNodes(node) {
++			// Better Sidebar 0.19 removed the legacy `splits` tree; skip absent roots.
++			if (node === void 0) return;
