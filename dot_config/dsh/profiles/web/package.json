@@ -20,7 +20,7 @@
     "dsh-memory": "^0.1.0",
     "dsh-quote-followup": "^0.2.6",
     "dshmarket": "1.47.0",
-    "electron": "^44.3.0"
+    "electron": "^44.4.0"
   },
   "dsh": {
     "profile": {
