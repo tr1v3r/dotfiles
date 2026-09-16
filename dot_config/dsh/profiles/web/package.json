@@ -3,9 +3,9 @@
   "private": true,
   "dependencies": {
     "@changfenhuang/dsh-annotation": "^1.4.10",
-    "@linxin666/dsh-client-ui-git-graph": "0.3.22",
-    "@linxin666/dsh-client-ui-skill-explorer": "0.3.22",
-    "@linxin666/dsh-web-all": "0.3.22",
+    "@linxin666/dsh-client-ui-git-graph": "0.3.23",
+    "@linxin666/dsh-client-ui-skill-explorer": "0.3.23",
+    "@linxin666/dsh-web-all": "0.3.23",
     "@liustack/modlens": "3.26.1",
     "@liustack/modsearch": "5.10.3",
     "@nanmicoder/dsh-agent-teams": "0.1.18",
@@ -20,7 +20,7 @@
     "dsh-memory": "^0.1.0",
     "dsh-quote-followup": "^0.2.6",
     "dshmarket": "1.47.0",
-    "electron": "^44.4.0"
+    "electron": "^44.4.1"
   },
   "dsh": {
     "profile": {
