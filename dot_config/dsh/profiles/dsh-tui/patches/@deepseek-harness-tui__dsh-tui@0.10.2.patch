@@ -415,10 +415,10 @@ index 0cdde7b..da5efa8 100644
                          onPick: (index) => {
                              const command = suggestions[index];
 diff --git a/lib/types/dsh-adapter/plugin.js b/lib/types/dsh-adapter/plugin.js
-index 947305e..07d2c0b 100644
+index 3b43a9b..b2b756f 100644
 --- a/lib/types/dsh-adapter/plugin.js
 +++ b/lib/types/dsh-adapter/plugin.js
-@@ -27,7 +27,7 @@ import { resolveSessionCwd } from '../utils/workspaceRoot.js';
+@@ -32,7 +32,7 @@ import { resolveSessionCwd } from '../utils/workspaceRoot.js';
  import { beginRestartAttempt, checkForTuiUpdate, installedTuiVersion, isBootDeadlockTarget, isStandaloneRuntime, isVersionNewer, logRestartEvent, resolveDshProfileName, resolveTuiUpdateTarget, restartTui, updateTuiAndRestart, writeHandoffNotice } from '../update.js';
  import { getLang, isLang, resolveStartupLang, setLang, t, writeLangPref } from '../i18n.js';
  import { DEFAULT_PAGE_MARGIN, DEFAULT_STATUS_BAR, applyPageMargin, isPageMarginMode, normalizePageMargin, normalizeScrollGutter, normalizeStatusBar, normalizeToolBackground, parsePageMarginSpec } from '../tuiDisplayPrefs.js';
@@ -427,7 +427,7 @@ index 947305e..07d2c0b 100644
  import { attachHerdrIntegration } from '../herdr.js';
  import { logMouseDebug } from '../utils/debug.js';
  import { Chat } from '../screens/Chat.js';
-@@ -573,6 +573,11 @@ export async function apply(ctx, config) {
+@@ -606,6 +606,11 @@ export async function apply(ctx, config) {
              // action (see the keymap utility). Unset keeps the default binding
              // and the section's format() shows the effective combos.
              shortcuts: Schema.object(Object.fromEntries(SHORTCUT_ACTIONS.map(action => [action.id, Schema.string().required(false)]))).required(false),
@@ -438,8 +438,8 @@ index 947305e..07d2c0b 100644
 +            vimKeys: Schema.object(Object.fromEntries(VIM_ACTIONS.map(action => [action.id, Schema.string().required(false)]))).required(false),
          }));
          const applyLayout = (value) => {
-             channel.setDiffLayout(value.diffLayout ?? config.diffLayout ?? 'auto');
-@@ -658,6 +663,23 @@ export async function apply(ctx, config) {
+             if (!shadow)
+@@ -698,6 +703,23 @@ export async function apply(ctx, config) {
              const level = next === null || next === 'auto' ? undefined : next;
              channel.setDefaultEffort(level);
          };
@@ -463,7 +463,7 @@ index 947305e..07d2c0b 100644
          const apply = (next) => {
              applyLayout(next);
              applyWhale(next);
-@@ -667,6 +689,7 @@ export async function apply(ctx, config) {
+@@ -707,6 +729,7 @@ export async function apply(ctx, config) {
              applyDisplay(next);
              applyEffortDefault(next);
              applyShortcuts(next);

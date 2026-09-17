@@ -53,7 +53,7 @@ llm-pi-ai:
         maxTokensField: max_tokens
         thinkingFormat: zai
 # /vim 输入框 vim 模式键位（colemak，映射同 nvim lua/r1v3r/keymaps.lua）。
-# vimKeys 机制由本地 pnpm patch 提供（profiles/dsh-tui/patches/，随 0.10.0-beta.5 锁定，
+# vimKeys 机制由本地 pnpm patch 提供（profiles/dsh-tui/patches/，随 0.10.2 锁定，
 # 升级 TUI 需重做补丁）。j 未映射仍为下行，0/$/^/w/b/x/X/d/a/A/o/O 保持原义。
 dsh-tui:
   vimKeys:
