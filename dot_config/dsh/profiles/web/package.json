@@ -19,7 +19,7 @@
     "dsh-holdem": "^0.3.0",
     "dsh-memory": "^0.1.0",
     "dsh-quote-followup": "^0.2.6",
-    "dshmarket": "1.47.0",
+    "dshmarket": "1.48.0",
     "electron": "^44.4.1"
   },
   "dsh": {

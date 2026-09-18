@@ -1,0 +1,5 @@
+; 本 profile 依赖树全部为公共 npm 包，默认 registry（bnpm）对部分包缺同步
+; （2026-09-19 dsh-at-file 404：pnpm 11 的 supply-chain lockfile 校验要逐条拉
+;  packument，bnpm 没有 dsh-at-file → update 整体失败）。仅此目录走公共源，
+;  全局默认不动（同 dsh-tui profile 2026-09-17 的做法）。
+registry=https://registry.npmjs.org
