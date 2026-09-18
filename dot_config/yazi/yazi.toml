@@ -14,8 +14,9 @@ title_format   = "Yazi: {cwd}"
 
 [preview]
 tab_size        = 2
-max_width       = 600
-max_height      = 900
+# Retina 全屏下调高采样上限，常规预览更锐
+max_width       = 1800
+max_height      = 2700
 cache_dir       = ""
 image_filter    = "triangle"
 image_quality   = 75
@@ -120,6 +121,12 @@ previewers = [
 	# Fallback
 	{ url = "*", run = "file" },
 ]
+
+# fit.yazi（自研）：小图重采样放大铺满预览窗，大图走内建缩小；
+# magick 缺失/失败回退内建渲染。avif/heic/jxl/svg 仍走下方 magick 管线
+[[plugin.prepend_previewers]]
+mime = "image/{jpeg,png,webp,gif,tiff,bmp}"
+run = "fit"
 
 # Tokyo Night preview pipeline: one wrapper owns the palette for Glow, Eza, and Bat.
 [[plugin.prepend_previewers]]
