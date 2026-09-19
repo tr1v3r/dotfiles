@@ -94,6 +94,7 @@ keymap = [
 
 	# Open
 	{ on = "r", run = "open --interactive", desc = "Open selected files interactively" },
+	{ on = ["z", "p"], run = "shell --block -- kittypdf %h", desc = "Read PDF in kitty" },
 
 	# Create
 	{ on = "T", run = "create", desc = "Create a file (ends with / for directories)" },
