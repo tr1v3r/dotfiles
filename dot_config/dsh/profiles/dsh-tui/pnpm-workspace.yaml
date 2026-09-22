@@ -2,7 +2,7 @@ packages:
   - .
 
 allowBuilds:
-  '@google/genai': false
+  "@google/genai": false
   esbuild: false
   koffi: false
   protobufjs: false
@@ -16,11 +16,10 @@ autoInstallPeers: false
 allowUnusedPatches: true
 
 minimumReleaseAgeExclude:
-  - '@tr1v3r/dsh-ltm@0.1.1'
-  - '@deepseek-harness-tui/dsh-tui@0.10.2'
+  - "@tr1v3r/dsh-ltm@0.2.0"
+  - "@deepseek-harness-tui/dsh-tui@0.10.2"
 
 nodeLinker: hoisted
 
 patchedDependencies:
-  '@deepseek-harness-tui/dsh-tui@0.10.2': patches/@deepseek-harness-tui__dsh-tui@0.10.2.patch
-
+  "@deepseek-harness-tui/dsh-tui@0.10.2": patches/@deepseek-harness-tui__dsh-tui@0.10.2.patch

@@ -3,13 +3,14 @@
   "private": true,
   "dependencies": {
     "@deepseek-harness-tui/dsh-tui": "0.10.2",
-    "@tr1v3r/dsh-ltm": "0.1.1"
+    "@tr1v3r/dsh-ltm": "0.2.0"
   },
   "dsh": {
     "profile": {
       "bundles": [
         "@deepseek-ai/dsh-base",
-        "@deepseek-harness-tui/dsh-tui"
+        "@deepseek-harness-tui/dsh-tui",
+        "@tr1v3r/dsh-ltm"
       ]
     }
   }

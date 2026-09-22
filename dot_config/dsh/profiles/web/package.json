@@ -9,7 +9,7 @@
     "@liustack/modlens": "3.26.2",
     "@liustack/modsearch": "5.10.3",
     "@nanmicoder/dsh-agent-teams": "0.1.20",
-    "@tr1v3r/dsh-ltm": "0.1.1",
+    "@tr1v3r/dsh-ltm": "0.2.0",
     "@tt-a1i/archify-dsh": "^0.1.0",
     "dsh-at-file": "^0.6.3",
     "dsh-better-sidebar": "^0.19.1",
@@ -41,7 +41,8 @@
         "dsh-holdem",
         "dsh-quote-followup",
         "dshmarket",
-        "@linxin666/dsh-web-all"
+        "@linxin666/dsh-web-all",
+        "@tr1v3r/dsh-ltm"
       ]
     }
   }
