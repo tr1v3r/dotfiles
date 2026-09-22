@@ -31,6 +31,10 @@
   disabled: true
 
 - insert:
+    - id: ltm
+      name: '@tr1v3r/dsh-ltm'
+      config:
+        path: !!js dshHomePath('memory/ltm.db')
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
       config:

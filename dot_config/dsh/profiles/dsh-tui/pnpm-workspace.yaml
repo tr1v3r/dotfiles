@@ -16,6 +16,7 @@ autoInstallPeers: false
 allowUnusedPatches: true
 
 minimumReleaseAgeExclude:
+  - '@tr1v3r/dsh-ltm@0.1.1'
   - '@deepseek-harness-tui/dsh-tui@0.10.2'
 
 nodeLinker: hoisted
