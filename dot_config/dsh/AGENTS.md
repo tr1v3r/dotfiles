@@ -171,13 +171,16 @@ settings.yaml，否则 TUI 冲突复发。
   拿应用层 401（传输层 initialize 不鉴权，健康检查到 tools/list 才炸）；曾以
   LaunchAgent `local.env-secrets`（`launchctl setenv` 注入 GUI 域）解决，
   2026-09-08 移除，替代方案待定。
-- **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/dsh-quote-followup`
+- **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/opensource/dsh-quote-followup`
   （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
-  `^0.2.5`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  `^0.2.6`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
   Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
   composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
   模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
   序列化引用框架随 DSH 中英文切换；chip 视觉标签只保留摘录正文，去掉冗余角色前缀。
+  ⚠️ 版本线：0.2.5 给序列化引用挂 turn provenance + 补 CI（测试矩阵、tag 门控发布）；
+  0.2.6（#4）把角色标签按 locale 本地化（zh/en，不再硬编码英文）、`decodeQuote` 对畸形/
+  旧引用返回 null 而非抛错（发送路径降级为空投影，不炸 send）。
   ⚠️ 四个运行时坑：① 不可直接
   改 contenteditable DOM；② Firefox 的合成 `ClipboardEvent` 可能丢 `clipboardData`，文本
   后备必须从 `__lexicalEditor._commands` 解析 `PASTE_COMMAND`；③ 旧页/hot swap 会残留

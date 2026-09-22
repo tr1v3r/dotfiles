@@ -52,8 +52,82 @@ llm-pi-ai:
         supportsReasoningEffort: false
         maxTokensField: max_tokens
         thinkingFormat: zai
+    # traex_bridge：本机 Trae→OpenAI 网关（code.byted.org/hepengcheng/traex_bridge），
+    # 复用 ~/.trae/cli/auth.json 的 Trae 授权，无需单独登录。容器监听 127.0.0.1:8317，
+    # 说 openai-responses 协议（POST {baseURL}/responses，实测 SSE 流式 / developer 角色 /
+    # reasoning.effort / max_output_tokens 均通）。pi-ai 目录没有这些模型，故整段手写声明。
+    # 仅暴露用户指定的 6 个模型，不多带。maxTokens 必须显式声明，否则落 harness 兜底 32768
+    # 长输出中途截断；上游不回显输出上限，65536 为实测可接受的稳妥每请求默认输出上限。
+    traex:
+      apiKeyEnv: TRAEX_BRIDGE_API_KEY
+      displayName: TraeX Bridge
+      api: openai-responses
+      baseURL: http://127.0.0.1:8317/v1
+      # 私有网关 URL 无法被 pi-ai 识别，其探测会按公有 OpenAI 兜底；这两个开关显式声明，
+      # 保证向 reasoning 模型发 developer 角色系统提示、并带上 max_output_tokens。
+      compat:
+        supportsDeveloperRole: true
+        supportsMaxOutputTokens: true
+      models:
+        # GPT-5.6-Sol：ctx 272K，默认 medium，思考四档 low/medium/high/xhigh。
+        - id: GPT-5.6-Sol
+          contextWindow: 272000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        # GPT-5.6-Sol[1m]：同 Sol，1M 长上下文变体（ctx 800K）。方括号是字面 id，需引号。
+        - id: "GPT-5.6-Sol[1m]"
+          contextWindow: 800000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        # GPT-6-Astra：ctx 272K，默认 medium，思考四档同 Sol。
+        - id: GPT-6-Astra
+          contextWindow: 272000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        # GPT-6-Astra[1m]：Astra 的 1M 长上下文变体（ctx 1000K）。
+        - id: "GPT-6-Astra[1m]"
+          contextWindow: 1000000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        # openrouter-3o：ctx 200K，默认 xhigh，思考五档（多一档 max）；上游 repo_restricted +
+        # usage_limited（有配额，网关 /v1/models 可查剩余额度）。
+        - id: openrouter-3o
+          contextWindow: 200000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        # openrouter-3o[1m]：openrouter-3o 的 1M 长上下文变体（ctx 1000K），思考五档同上。
+        - id: "openrouter-3o[1m]"
+          contextWindow: 1000000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
 # /vim 输入框 vim 模式键位（colemak，映射同 nvim lua/r1v3r/keymaps.lua）。
-# vimKeys 机制由本地 pnpm patch 提供（profiles/dsh-tui/patches/，随 0.10.0-beta.5 锁定，
+# vimKeys 机制由本地 pnpm patch 提供（profiles/dsh-tui/patches/，随 0.10.2 锁定，
 # 升级 TUI 需重做补丁）。j 未映射仍为下行，0/$/^/w/b/x/X/d/a/A/o/O 保持原义。
 dsh-tui:
   vimKeys:

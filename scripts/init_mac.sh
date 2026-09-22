@@ -54,7 +54,7 @@ have brew || abort "Homebrew was installed but could not be added to PATH"
 # Formulae (brew itself skips the ones already installed; go included)
 # NOTE: per-package loop so one bad/renamed formula doesn't kill the rest.
 echo "Installing packages via Homebrew..."
-brew_packages=("python3" "neovim" "gpg" "paperkey" "zoxide" "tldr" "mpv" "autojump" "tmux" "wget" "lua" "tree" "sevenzip" "git-delta" "git-crypt" "fzf" "neofetch" "cmake" "highlight" "graphviz" "ffmpeg" "openssl" "sops" "figlet" "go" "switchaudio-osx" "nowplaying-cli" "uv")
+brew_packages=("python3" "neovim" "gpg" "paperkey" "zoxide" "tldr" "mpv" "autojump" "tmux" "wget" "lua" "tree" "sevenzip" "git-delta" "git-crypt" "fzf" "neofetch" "cmake" "highlight" "graphviz" "ffmpeg" "exiftool" "openssl" "sops" "figlet" "go" "switchaudio-osx" "nowplaying-cli" "uv")
 for pkg in "${brew_packages[@]}"; do
 	brew install "$pkg" || echo "WARN: brew install $pkg failed (continuing)"
 done

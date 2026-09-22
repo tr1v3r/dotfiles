@@ -27,6 +27,7 @@ The checkout is the chezmoi **source** dir (`~/.local/share/chezmoi` after
 `chezmoi init`):
 
 - `dot_config/` → `~/.config/` — all XDG configs, plus the service stacks and `deploy/`
+- `dot_trae/traecli.toml` → `~/.trae/traecli.toml` — TraeCode CLI config (git-crypt encrypted)
 - `.zsh/`, `.nvim/`, `.hermes/` — independent submodules mapped to their runtime locations
 - `dot_zshenv.tmpl`, `dot_condarc`, `dot_cargo/`, `dot_gnupg/` → home-level dotfiles
 - `scripts/`, `*.md` — repo-only; encrypted `age/` and `secrets/` live under `dot_config/`
@@ -101,7 +102,8 @@ Linux, use `./scripts/init.sh --help` for optional groups, dry-run, and retry co
 ## Notes
 
 - **Encrypted paths**: see `.gitattributes` (`secrets/**`, `dot_config/ssh/config`,
-  `dot_config/git/work.config`, `dot_config/aerc/accounts.conf`, various `*.env`).
+  `dot_config/git/work.config`, `dot_config/aerc/accounts.conf`,
+  `dot_trae/traecli.toml`, various `*.env`).
 - **Editing**: non-template targets are symlinks — edit in place. Templates
   (`*.tmpl`) are rendered copies; edit them with `chezmoi edit <target>`.
 - **Submodules**: `.zsh/`, `.nvim/`, and `.hermes/` are separate repos

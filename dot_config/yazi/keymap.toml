@@ -16,6 +16,9 @@ prepend_keymap = [
 	{ on = ["c", "s"], run = "plugin gpg -- sign", desc = "Create detached GPG signatures for selected files" },
 	{ on = ["c", "d"], run = "plugin gpg -- decrypt", desc = "Decrypt and verify selected GPG files" },
 	{ on = ["c", "v"], run = "plugin gpg -- verify", desc = "Verify encrypted or detached GPG signatures" },
+	{ on = ">", run = "plugin resize 1", desc = "Widen the preview pane" },
+	{ on = "<", run = "plugin resize -1", desc = "Narrow the preview pane" },
+	{ on = "=", run = "plugin resize reset", desc = "Reset preview pane width" },
 ]
 
 keymap = [
@@ -91,6 +94,7 @@ keymap = [
 
 	# Open
 	{ on = "r", run = "open --interactive", desc = "Open selected files interactively" },
+	{ on = ["z", "p"], run = "shell --block -- kittypdf %h", desc = "Read PDF in kitty" },
 
 	# Create
 	{ on = "T", run = "create", desc = "Create a file (ends with / for directories)" },

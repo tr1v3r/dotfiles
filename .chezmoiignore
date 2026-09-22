@@ -66,3 +66,6 @@ scripts
 # defeats the `!` negation below (verified chezmoi v2.72).
 .claude/*
 !.claude/settings.json
+# ~/.trae is runtime state except for the explicitly managed CLI config.
+.trae/*
+!.trae/traecli.toml

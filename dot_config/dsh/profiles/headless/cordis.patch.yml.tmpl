@@ -15,5 +15,7 @@
         env:
           FIRECRAWL_API_URL: http://127.0.0.1:3002
           NPM_CONFIG_CACHE: !!js process.env.HOME + '/.cache/dsh-npm'
+          # 默认 registry 未同步该包（3.24.0 起长期缺失），此 npx 子进程单独走公共 npm
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
         toolCallTimeoutMs: 180000
         failOnStartupError: false

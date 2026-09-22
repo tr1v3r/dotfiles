@@ -14,8 +14,9 @@ title_format   = "Yazi: {cwd}"
 
 [preview]
 tab_size        = 2
-max_width       = 600
-max_height      = 900
+# Retina 全屏下调高采样上限，常规预览更锐
+max_width       = 1800
+max_height      = 2700
 cache_dir       = ""
 image_filter    = "triangle"
 image_quality   = 75
@@ -33,6 +34,15 @@ open = [
 	{ run = "xdg-open %s1", desc = "Open", for = "linux" },
 	{ run = "open %s", desc = "Open", for = "macos" },
 	{ run = 'start "" %s1', orphan = true, desc = "Open", for = "windows" },
+]
+pdf-study = [
+	{ run = "sioyek %s", orphan = true, desc = "Sioyek · study", for = "macos" },
+]
+pdf-terminal = [
+	{ run = "kittypdf %s1", block = true, desc = "kittypdf · terminal", for = "unix" },
+]
+pdf-native = [
+	{ run = "open -a Preview %s", orphan = true, desc = "Preview · edit/print", for = "macos" },
 ]
 reveal = [
 	{ run = "xdg-open %d1", desc = "Reveal", for = "linux" },
@@ -56,8 +66,9 @@ rules = [
 	{ mime = "inode/directory", use = ["edit", "open", "reveal"] },
 	# Text
 	{ mime = "text/*", use = ["edit", "reveal"] },
-	# books
-	{ mime = "application/{epub+zip,pdf}", use = ["open", "reveal"] },
+	# Books: Sioyek is the default PDF reader; r opens the full chooser.
+	{ mime = "application/pdf", use = ["pdf-study", "pdf-terminal", "pdf-native", "reveal"] },
+	{ mime = "application/epub+zip", use = ["open", "reveal"] },
 	# Image
 	{ mime = "image/*", use = ["open", "reveal"] },
 	# Media
@@ -120,6 +131,12 @@ previewers = [
 	# Fallback
 	{ url = "*", run = "file" },
 ]
+
+# fit.yazi（自研）：小图重采样放大铺满预览窗，大图走内建缩小；
+# magick 缺失/失败回退内建渲染。avif/heic/jxl/svg 仍走下方 magick 管线
+[[plugin.prepend_previewers]]
+mime = "image/{jpeg,png,webp,gif,tiff,bmp}"
+run = "fit"
 
 # Tokyo Night preview pipeline: one wrapper owns the palette for Glow, Eza, and Bat.
 [[plugin.prepend_previewers]]

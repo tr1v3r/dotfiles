@@ -1,0 +1,3 @@
+; 本 profile 依赖树全部为公共 npm 包，默认 registry 对部分包长期缺同步
+; （2026-09-17 dsh-memory 404 拖垮 /update）。仅此目录走公共源，全局默认不动。
+registry=https://registry.npmjs.org

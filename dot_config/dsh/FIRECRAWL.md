@@ -173,6 +173,7 @@ Firecrawl Cloud 账单。
         env:
           FIRECRAWL_API_URL: http://127.0.0.1:3002
           NPM_CONFIG_CACHE: !!js process.env.HOME + '/.cache/dsh-npm'
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
         toolCallTimeoutMs: 180000
         failOnStartupError: false
 ```
