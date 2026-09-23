@@ -275,6 +275,11 @@ settings.yaml，否则 TUI 冲突复发。
   utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
   models 列表可精简回纯 id 列表（仍是整体替换语义）。
+  **2026-09-23 已做且更进一步**：0.87.1 目录的 glm-5.3 系元数据（131072 maxTokens、
+  low/high/max、supportsReasoningEffort=true）不低于旧手写条目，还多出
+  supportsStrictMode / zaiToolStream 两个 compat 修正——settings 的 zai 段已整段
+  删除 models + 路由级 compat，只留 apiKeyEnv，整路由回落目录（不声明即用目录，
+  比"纯 id 列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
 - **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
   `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
   anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
