@@ -23,13 +23,6 @@
 # dsh-agent-teams 0.1.16-rc.1 曾因仅支持 Harness 0.1.2、无法安装 retired-member
 # guard 被禁用；2026-09-16 手改部署文件移除禁用，此处回填模板保持一致。
 
-# dsh-web-all 0.3.20 bundles dsh-better-sidebar@0.19.0-alpha.1, while this
-# profile directly loads the DSH 0.1.5-rc.1-compatible stable release. Keep the
-# direct bundle first and disable the aggregate entry so only one plugin owns
-# /sidebar/api.
-- id: web-ui-better-sidebar
-  disabled: true
-
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
