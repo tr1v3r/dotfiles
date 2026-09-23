@@ -10,7 +10,7 @@ minimumReleaseAgeExclude:
   - dsh-builtin-browser@0.1.20
   - dshmarket@1.35.0 || 1.44.0 || 1.45.0 || 1.47.0 || 1.48.0 || 1.52.0 || 1.55.0 || 1.58.0
   - "@nanmicoder/dsh-agent-teams@0.1.16-rc.1 || 0.1.17-rc.1"
-  - dsh-quote-followup@0.2.6 || 0.2.7
+  - dsh-quote-followup@0.2.6 || 0.2.7 || 0.2.8
   - dsh-context@0.46.0 || 0.49.1 || 0.50.0 || 0.52.2 || 0.54.2 || 0.54.4 || 0.55.0
   - "@linxin666/dsh-client-ui-community-plugins@0.3.20 || 0.3.23 || 0.3.24"
   - "@linxin666/dsh-client-ui-git-graph@0.3.20 || 0.3.23 || 0.3.24"

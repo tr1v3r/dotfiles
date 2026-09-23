@@ -6,20 +6,20 @@
     "@linxin666/dsh-client-ui-git-graph": "0.3.24",
     "@linxin666/dsh-client-ui-skill-explorer": "0.3.24",
     "@linxin666/dsh-web-all": "0.3.24",
-    "@liustack/modlens": "3.26.2",
-    "@liustack/modsearch": "5.10.3",
+    "@liustack/modlens": "3.26.3",
+    "@liustack/modsearch": "5.10.4",
     "@nanmicoder/dsh-agent-teams": "0.1.20",
-    "@tr1v3r/dsh-ltm": "0.2.0",
+    "@tr1v3r/dsh-ltm": "0.2.1",
     "@tt-a1i/archify-dsh": "^0.1.0",
     "dsh-at-file": "^0.6.3",
     "dsh-better-sidebar": "^0.19.1",
     "dsh-builtin-browser": "^0.1.21",
-    "dsh-context": "^0.54.4",
+    "dsh-context": "^0.55.0",
     "dsh-fetch-file": "^0.1.2",
     "dsh-holdem": "^0.4.0",
-    "dsh-quote-followup": "^0.2.7",
-    "dshmarket": "1.55.0",
-    "electron": "^44.4.1"
+    "dsh-quote-followup": "^0.2.8",
+    "dshmarket": "1.58.0",
+    "electron": "^44.4.5"
   },
   "dsh": {
     "profile": {
@@ -29,9 +29,11 @@
         "@changfenhuang/dsh-annotation",
         "@linxin666/dsh-client-ui-git-graph",
         "@linxin666/dsh-client-ui-skill-explorer",
+        "@linxin666/dsh-web-all",
         "@liustack/modlens",
         "@liustack/modsearch",
         "@nanmicoder/dsh-agent-teams",
+        "@tr1v3r/dsh-ltm",
         "@tt-a1i/archify-dsh",
         "dsh-at-file",
         "dsh-better-sidebar",
@@ -40,9 +42,7 @@
         "dsh-fetch-file",
         "dsh-holdem",
         "dsh-quote-followup",
-        "dshmarket",
-        "@linxin666/dsh-web-all",
-        "@tr1v3r/dsh-ltm"
+        "dshmarket"
       ]
     }
   }
