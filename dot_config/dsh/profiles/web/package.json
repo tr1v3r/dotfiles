@@ -17,7 +17,7 @@
     "dsh-context": "^0.54.4",
     "dsh-fetch-file": "^0.1.2",
     "dsh-holdem": "^0.4.0",
-    "dsh-quote-followup": "^0.2.6",
+    "dsh-quote-followup": "^0.2.7",
     "dshmarket": "1.55.0",
     "electron": "^44.4.1"
   },
