@@ -173,23 +173,32 @@ settings.yaml，否则 TUI 冲突复发。
   2026-09-08 移除，替代方案待定。
 - **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/opensource/dsh-quote-followup`
   （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
-  `^0.2.6`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  `^0.2.8`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
   Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
   composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
   模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
   序列化引用框架随 DSH 中英文切换；chip 视觉标签只保留摘录正文，去掉冗余角色前缀。
   ⚠️ 版本线：0.2.5 给序列化引用挂 turn provenance + 补 CI（测试矩阵、tag 门控发布）；
   0.2.6（#4）把角色标签按 locale 本地化（zh/en，不再硬编码英文）、`decodeQuote` 对畸形/
-  旧引用返回 null 而非抛错（发送路径降级为空投影，不炸 send）。
+  旧引用返回 null 而非抛错（发送路径降级为空投影，不炸 send）；0.2.7（#8）按钮改用 DSH
+  设计 token；0.2.8 = #9（跨消息选区不再冒领起始行的 role/turn，插入失败时恢复选区并给
+  localized 提示）+ #10（插入改走 session 级 `scope.get("conversation").input.for(scope)`
+  的 `insertReference`，不再读 `_nodes`/`_nodeMap`/`_pendingEditorState`——这是 0.2.8 前
+  「quote 完全失效」的真因：插件读了未声明 inject 的 `sessions`，`ctx.sessions` 取值即抛
+  「cannot get property "sessions" without inject」，故 `inject` 补 `sessions`；被 admission
+  拒绝的编辑不走文本兜底，仅缺 facade 时降级）。
   ⚠️ 四个运行时坑：① 不可直接
   改 contenteditable DOM；② Firefox 的合成 `ClipboardEvent` 可能丢 `clipboardData`，文本
   后备必须从 `__lexicalEditor._commands` 解析 `PASTE_COMMAND`；③ 旧页/hot swap 会残留
   mounted 锁和共用按钮，新 client 要用 versioned state + button ownership 接管；④ Web
   服务在 boot 时缓存 client bundle，更新包后必须同时**重启服务并刷新/重开旧页面**。
   回归：`npm test`；真实验证同时查 chip/DOM 与 `__lexicalEditor.getEditorState()`，并覆盖
-  系统 Firefox。发布后改 profile 版本号，再在**实际 runtime target** 跑 `dsh plugin
-  --profile web clean --lockfile && dsh plugin --profile web install --no-frozen-lockfile`；不要只在
-  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。
+  系统 Firefox。发布后改 profile 版本号（chezmoi source 与 runtime 的 package.json 都要改：
+  runtime 那份是普通副本不是 symlink，两边会各自漂移，只改一边等于没改），再在
+  **实际 runtime target** 跑 `dsh plugin --profile web install --no-frozen-lockfile`；不要只在
+  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。⚠️ `dsh plugin`
+  只是把参数转发给 pnpm，`clean` 不是 pnpm 子命令（2026-09-24 实测无效，原约定里的
+  `clean --lockfile` 已去掉）。
   pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
