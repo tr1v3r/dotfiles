@@ -275,6 +275,22 @@ settings.yaml，否则 TUI 冲突复发。
   utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
   models 列表可精简回纯 id 列表（仍是整体替换语义）。
+- **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
+  `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
+  anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
+  不联网刷新。官方路径走不通：dsh-llm-pi-ai 全部已发布版本（至 0.1.7-alpha.1）
+  都锁 pi-ai `^0.85.1`（0.x caret 不跨 minor）、dsh-auth 的 `modelOverrides`
+  缺 id 即 boot 抛错、settings 又不能声明 openai-codex（见上注册冲突坑）——
+  唯一立即生效的手段是物理替换目录：跑 `scripts/refresh-pi-ai.sh [version]`
+  （下载/预验全在临时目录完成、留 `.bak` 上一版备份、失败自动回滚、换后打印
+  各路由模型增删 diff；macOS 自带 bash 3.2 吞多字节字符，脚本里变量一律加
+  花括号）。⚠️ `npm i -g @deepseek-ai/dsh` 会整树重建、还原成 0.85.x 并删掉
+  .bak——**升级 dsh 后重跑本脚本**；`/update` 与 `dsh plugin` 只动 profile，
+  不受影响。换装后须重启会话（模型注册表 boot 时构建）。首次换装 0.85.1→
+  0.87.1：codex 路由 +gpt-6-luna/gpt-6-sol、−gpt-5.4/gpt-5.4-mini；zai 目录
+  自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
+  原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
+  dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
 - 官方文档在安装包内：`@deepseek-ai/dsh/README.zh.md`、各插件包 `README.zh.md`
   （`dsh-llm-pi-ai`、`dsh-settings-file`、`dsh-agent-default-model` 等）；
