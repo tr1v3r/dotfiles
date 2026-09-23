@@ -96,15 +96,20 @@ fi
 echo "→ pi-ai $CURRENT_VERSION → $TARGET_VERSION"
 
 # ── 第 1 步：下载 + 解包 + 预验（全部发生在临时目录，失败不影响线上目录）──────
+# --cache 指到脚本自己的临时目录：不依赖用户默认 ~/.npm（若被 sudo npm 写入
+# root-owned 文件会 EPERM，见 https://npm.im 说明的 chown 修复），代价是每次
+# 冷下载几 MB，换确定性。
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-( cd "$TMP" && npm pack --silent "@earendil-works/pi-ai@$TARGET_VERSION" >/dev/null )
+( cd "$TMP" && npm pack --silent --cache "$TMP/npm-cache" \
+    "@earendil-works/pi-ai@$TARGET_VERSION" >/dev/null )
 TGZ="$TMP/earendil-works-pi-ai-$TARGET_VERSION.tgz"
 [[ -f "$TGZ" ]] || { echo "✗ npm pack 产物未找到（版本号存在吗？）" >&2; exit 1; }
 
 mkdir -p "$TMP/pkg"
-tar -xzf "$TGZ" -C "$TMP/pkg"
+# npm 包 tarball 顶层是 package/ 目录，剥掉前缀让内容直接落在 pkg/ 下
+tar -xzf "$TGZ" -C "$TMP/pkg" --strip-components 1
 
 PACKED="$(node -p "require('$TMP/pkg/package.json').version")"
 [[ "$PACKED" == "$TARGET_VERSION" ]] || {
