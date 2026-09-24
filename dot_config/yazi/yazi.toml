@@ -39,7 +39,7 @@ pdf-study = [
 	{ run = "sioyek %s", orphan = true, desc = "Sioyek · study", for = "macos" },
 ]
 pdf-terminal = [
-	{ run = "kittypdf %s1", block = true, desc = "kittypdf · terminal", for = "unix" },
+	{ run = "kittypdf %s1", block = true, desc = "kittypdf · terminal (default)", for = "unix" },
 ]
 pdf-native = [
 	{ run = "open -a Preview %s", orphan = true, desc = "Preview · edit/print", for = "macos" },
@@ -66,8 +66,8 @@ rules = [
 	{ mime = "inode/directory", use = ["edit", "open", "reveal"] },
 	# Text
 	{ mime = "text/*", use = ["edit", "reveal"] },
-	# Books: Sioyek is the default PDF reader; r opens the full chooser.
-	{ mime = "application/pdf", use = ["pdf-study", "pdf-terminal", "pdf-native", "reveal"] },
+	# Books: kittypdf is the default PDF reader (falls through to Sioyek); r opens the full chooser.
+	{ mime = "application/pdf", use = ["pdf-terminal", "pdf-study", "pdf-native", "reveal"] },
 	{ mime = "application/epub+zip", use = ["open", "reveal"] },
 	# Image
 	{ mime = "image/*", use = ["open", "reveal"] },
