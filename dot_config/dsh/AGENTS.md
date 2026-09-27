@@ -305,6 +305,25 @@ settings.yaml，否则 TUI 冲突复发。
   自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
   原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
   dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
+- **桌面版（GUI）的 DSH_HOME（2026-09-27 起与 CLI 统一到 `~/.config/dsh`）**：桌面 app
+  （`~/.dsh` 是它的默认 home）解析顺序是 *显式配置 > `$DSH_HOME` > `~/.dsh`*，且**没有 UI
+  设置项也没有启动参数**；macOS GUI 进程不继承 shell 环境，所以 `.zsh/env.zsh` 里的
+  `export DSH_HOME` 对它无效——必须注入 GUI（Aqua）域。现由 chezmoi 管理的
+  `Library/LaunchAgents/local.dsh.home-env.plist.tmpl`（→ `~/Library/LaunchAgents/
+  local.dsh.home-env.plist`，模板渲染 `{{ .chezmoi.homeDir }}`，**不写死用户名**）
+  在登录时执行 `launchctl setenv DSH_HOME <homeDir>/.config/dsh`，之后从 Dock/Finder/
+  Spotlight 启动的 app 都继承它；`open -a "DeepSeek Harness" --env DSH_HOME=...`
+  只对单次启动有效（app 已在跑时参数被忽略，必须先 Cmd-Q）。
+  - ⚠️ **`launchctl getenv DSH_HOME` 在 DSH 自己的 shell 里读不到**（与 GUI 域不是同一个
+    bootstrap namespace，实测返回空但域里其实已生效）；可靠验证是 `launchctl print
+    gui/$(id -u)/local.dsh.home-env` 的 `inherited environment`，或 GUI 启动的会话里
+    `env | grep DSH_HOME`。
+  - ⚠️ **登录项竞态**：app 若设了「登录时打开」，可能早于 RunAtLoad agent 启动而静默回落
+    `~/.dsh`（表现是会话列表/记忆突然空掉）。改动后从 Dock 手动重启一次 app。
+  - 状态迁移（会话/storages/profile/凭据合并，只增不删）用
+    `scripts/dsh-migrate-desktop-home.sh`，幂等；凭据/LTM 冲突不覆盖，见脚本头部说明。
+  - 桌面版**不读 `settings.yaml`**（这个构建根本没挂 `dsh-settings-file`，app.asar 实测 0
+    处引用），它的配置全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
 - 官方文档在安装包内：`@deepseek-ai/dsh/README.zh.md`、各插件包 `README.zh.md`
   （`dsh-llm-pi-ai`、`dsh-settings-file`、`dsh-agent-default-model` 等）；
