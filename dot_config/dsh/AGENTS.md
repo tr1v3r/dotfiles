@@ -337,8 +337,9 @@ settings.yaml，否则 TUI 冲突复发。
     `~/.dsh`（表现是会话列表/记忆突然空掉）。改动后从 Dock 手动重启一次 app。
   - 状态迁移（会话/storages/profile/凭据合并，只增不删）用
     `scripts/dsh-migrate-desktop-home.sh`，幂等；凭据/LTM 冲突不覆盖，见脚本头部说明。
-  - 桌面版**不读 `settings.yaml`**（这个构建根本没挂 `dsh-settings-file`，app.asar 实测 0
-    处引用），它的配置全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
+  - 桌面版对 `settings.yaml` 的态度随版本翻转：0.1.6 不读（未挂 `dsh-settings-file`）；
+    **0.1.7-rc.2 起主动导入并没收**（见上方 settings.yaml 节的事故记录）。它的配置
+    全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
 - 官方文档在安装包内：`@deepseek-ai/dsh/README.zh.md`、各插件包 `README.zh.md`
   （`dsh-llm-pi-ai`、`dsh-settings-file`、`dsh-agent-default-model` 等）；
