@@ -298,12 +298,12 @@ settings.yaml，否则 TUI 冲突复发。
   PromptInput.js、CommandSuggestions.js/.d.ts、dsh-adapter/plugin.js、
   utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
-  models 列表可精简回纯 id 列表（仍是整体替换语义）。
+  models 列表可精简为仅含 `id` 的对象列表（仍是整体替换语义；不能写裸字符串）。
   **2026-09-23 已做且更进一步**：0.87.1 目录的 glm-5.3 系元数据（131072 maxTokens、
   low/high/max、supportsReasoningEffort=true）不低于旧手写条目，还多出
   supportsStrictMode / zaiToolStream 两个 compat 修正——settings 的 zai 段已整段
   删除 models + 路由级 compat，只留 apiKeyEnv，整路由回落目录（不声明即用目录，
-  比"纯 id 列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
+  比"只列 id 的对象列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
 - **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
   `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
   anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
@@ -320,6 +320,17 @@ settings.yaml，否则 TUI 冲突复发。
   自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
   原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
   dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
+- ⚠️ **桌面版 pi-ai 模型列表（0.1.7-rc.2）**：app.asar 自带 pi-ai 0.85.1，
+  与 `scripts/refresh-pi-ai.sh` 换装的全局 CLI/Web 0.87.1 是两份目录；换装全局目录
+  **不会刷新桌面目录**。桌面的 `profiles/desktop/cordis.patch.yml` 若要限定
+  `openai-codex.models`，必须写对象数组（如 `- id: gpt-6-astra`），不能写裸字符串：
+  `dsh-llm-pi-ai` 的 schema 要求每项有字符串 `id`，否则整个 `llm-pi-ai` 配置无效，
+  `zai-coding-cn` / `traex` / `openai-codex` 一起消失，界面只剩 DeepSeek。
+  `models` 会**整体替换**目录；目录已有的模型仅列 `id` 可继承元数据，桌面目录没有的
+  `gpt-6-luna` / `gpt-6-sol` 必须显式补 `contextWindow`、`maxTokens`、`input`、
+  `reasoningEfforts`，否则落到 262144/32768 等兜底值。当前桌面只保留
+  gpt-6-astra、gpt-6-luna、gpt-6-sol、gpt-5.6-sol；源文件与 live 文件是独立副本，
+  GUI 会写 live 文件，勿用源文件整份覆盖其余运行时设置。
 - **桌面版（GUI）的 DSH_HOME（2026-09-27 起与 CLI 统一到 `~/.config/dsh`）**：桌面 app
   （`~/.dsh` 是它的默认 home）解析顺序是 *显式配置 > `$DSH_HOME` > `~/.dsh`*，且**没有 UI
   设置项也没有启动参数**；macOS GUI 进程不继承 shell 环境，所以 `.zsh/env.zsh` 里的

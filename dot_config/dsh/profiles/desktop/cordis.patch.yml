@@ -31,7 +31,45 @@
     providers:
       zai-coding-cn:
         apiKeyEnv: ZAI_CODING_CN_API_KEY
-      openai-codex: {}
+      # models 必须是对象数组（schema: z.array(z.object({ id: ... }))）：
+      # 纯字符串会让整个 llm-pi-ai 分节校验失败 → 全部 pi-ai 路由一起消失。
+      # 另：声明 models 是整体替换，目录里其它 codex 模型不再出现在选择器里。
+      openai-codex:
+        models:
+          # 桌面内置目录（pi-ai 0.85.1）已有：只写 id，其余元数据自动继承
+          - id: gpt-6-astra
+          - id: gpt-5.6-sol
+          # 0.87.1 才收录，0.85.1 目录没有：必须整段手写，否则落兜底 262144/32768
+          - id: gpt-6-luna
+            name: GPT-6 Luna
+            contextWindow: 272000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              minimal: low
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: gpt-6-sol
+            name: GPT-6 Sol
+            contextWindow: 272000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              minimal: low
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
       traex:
         apiKeyEnv: TRAEX_BRIDGE_API_KEY
         displayName: TraeX Bridge
