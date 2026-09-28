@@ -144,7 +144,9 @@ fi
 # ------------------------------------------------------------- what is left --
 step "intentionally NOT copied"
 note "dsh-runtimes/     — 359MB payload the host re-syncs from the app bundle on first boot"
-note "settings.yaml     — this desktop build mounts no dsh-settings-file (0 refs in app.asar), so it is never read"
+note "settings.yaml     — 0.1.6 builds never read it; 0.1.7-rc.2+ IMPORTS it once per boot"
+note "                   (renames to settings.yaml.imported). Post-migration: keep LLM"
+note "                   providers in profile cordis.patch.yml entry config (see dsh AGENTS.md)"
 
 step "next"
 cat <<EOF

@@ -7,10 +7,96 @@
 # shared settings section made llm-pi-ai's all-or-nothing registration fail
 # there (zai-coding-cn never registered). This profile has no dsh-auth, so
 # the entry-level route merges with the settings section per provider.
+#
+# 2026-09-28 起 zai-coding-cn / traex 也常驻 entry 层（同 settings.yaml 分节等值）：
+# 桌面版 0.1.7-rc.2 的 settings 导入器在每次 boot/config-reload 时都会把
+# $DSH_HOME/settings.yaml 无条件改名成 .imported 并只按它的 entry 体系吸收，
+# legacy 文件随时会消失；entry 层是本 profile 自己的 patch，不受影响。
+# settings 分节仍在时按 provider 合并（同值叠加，无冲突）。
 - id: llm-pi-ai
   config:
     providers:
       openai-codex: {}
+      # zai（GLM）：pi-ai 0.87.1 目录原生含 glm-5.3 系，只需 apiKeyEnv，不写 models
+      #（手写 models 是整体替换，会丢目录附带的 compat 修正）。
+      zai-coding-cn:
+        apiKeyEnv: ZAI_CODING_CN_API_KEY
+      # traex_bridge：本机 Trae→OpenAI 网关（127.0.0.1:8317，openai-responses 协议），
+      # 复用 ~/.trae 授权。pi-ai 目录没有这些模型，必须整段手写；maxTokens 必须显式
+      # 声明，否则落 harness 兜底 32768 长输出中途截断。
+      traex:
+        apiKeyEnv: TRAEX_BRIDGE_API_KEY
+        displayName: TraeX Bridge
+        api: openai-responses
+        baseURL: http://127.0.0.1:8317/v1
+        compat:
+          supportsDeveloperRole: true
+          supportsMaxOutputTokens: true
+        models:
+          - id: GPT-5.6-Sol
+            contextWindow: 272000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-5.6-Sol[1m]"
+            contextWindow: 800000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: GPT-6-Astra
+            contextWindow: 272000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-6-Astra[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: openrouter-3o
+            contextWindow: 200000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: "openrouter-3o[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+
+# 同上（entry 层兜底）：deepseek 官方路由只抬输出上限（384K=393216，API 实测），
+# 不写 models（内置目录已含 deepseek-flash）。
+- id: llm-deepseek
+  config:
+    maxTokens: 393216
+
+# entry 层默认模型兜底（settings.yaml 被桌面版吃掉时的 floor；
+# picker 运行时写 settings 分节，存在时仍以 settings 为准）。
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
+    reasoningEffort: high
 
 # dsh-at-file / dsh-fetch-file 截至 0.6.3 / 0.1.2 未适配 dsh 0.1.2-rc.1
 # 的官方包导出面（dsh-settings 的 settingsNamespace、dsh-llm 的 CallId 被移除），
@@ -84,4 +170,9 @@
         toolCallTimeoutMs: 180000
         failOnStartupError: false
 - id: dsh-annotation
+  disabled: true
+
+# 2026-09-28 从 live cordis.patch.yml 回填：dshmarket 运行时写入的禁用。
+# （组合树里尚无 modlens 条目，dump 会报 entry not found，属无害死配置。）
+- id: modlens
   disabled: true
