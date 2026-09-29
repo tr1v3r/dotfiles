@@ -4,4 +4,4 @@ packages:
 nodeLinker: hoisted
 autoInstallPeers: false
 minimumReleaseAgeExclude:
-  - dsh-quote-followup@0.2.9
+  - dsh-quote-followup@0.2.10

@@ -6,7 +6,7 @@
     "@tr1v3r/dsh-ltm": "^0.2.1",
     "@tr1v3r/dsh-proxy": "^0.2.3",
     "dsh-context": "^0.56.2",
-    "dsh-quote-followup": "^0.2.9"
+    "dsh-quote-followup": "^0.2.10"
   },
   "dsh": {
     "profile": {
