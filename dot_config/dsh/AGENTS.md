@@ -240,7 +240,7 @@ settings.yaml，否则 TUI 冲突复发。
   通过、版本横幅警告消失，headless 一句话 OK，web 组合到 listen 阶段（3080 被已在跑的
   旧实例占用 → EADDRINUSE，非升级问题）。升级途中 TUI 一度 startup failed，见下面
   「0.2.0-rc.1 的两个新坑」。）
-- ⚠️ **dsh 0.2.0-rc.1 的两个新坑**（2026-09-29 实测）：
+- ⚠️ **dsh 0.2.0-rc.1 的三个新坑**（2026-09-29 实测）：
   - **profile 依赖必须重装**：0.2.0-rc.1 下 dsh-tui 0.11.2 startup failed
     ——「profile-backed settings require @deepseek-ai/schemastery >= 3.18.3」，profile 里
     钉的是 3.18.2；`pnpm update @deepseek-ai/schemastery --depth 9999`（→ 3.18.4）才起得来。
@@ -257,6 +257,21 @@ settings.yaml，否则 TUI 冲突复发。
     `@nanmicoder/dsh-agent-teams@0.1.22` 可解禁，不急。将来 TUI 新版名单含 rc.2 时再走
     完整链路：`npm i -g` → `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 → 真 boot 三 profile；
     不愿等也可 `dsh plugin allow-version` 精确豁免硬上，但工具明说 risky。）
+  - ⚠️ **client 侧 `settingsScope` 服务已改名为 `configForms`**（2026-09-29 实测）：
+    官方 `dsh-client-ui-settings` 现在 provide `ctx.configForms`（取用面是
+    `ctx.configForms.get(entryId)`）；旧的 `settingsScope` 服务在 0.2.0-rc.1 已不存在
+    （`@linxin666` 系只在服务对象上留了同名属性别名，救不了按服务名 `ctx.settingsScope`
+    取用的代码）。第三方 client 模块若在**模块级 `inject` 里点 `settingsScope`，条目永久
+    pending** → web UI 弹「Failed to load plugins / web boot: N entry did not activate」，
+    本机 @tr1v3r/dsh-proxy **0.2.1 即此症，升 0.2.4 修掉**（其 #7 已把 inject 换成
+    `configForms`；排查口诀：client 侧 pending 看该包 `lib/client.js` 的模块级 `inject`）。
+    `dsh-context`（0.55.0）/`dshmarket` 只是内联 `ctx.inject(['settingsScope'],…)` 等它，
+    不阻塞条目，但它们的设置卡片会静默不出现，等上游改名。
+    改完版本号后 profile 依赖同样要**在 runtime target 重装**才生效（本机 package.json /
+    pnpm-workspace.yaml 是 symlink，改 source 即改 runtime）。
+    验证法：`dsh --profile web --port 0 --no-open` 另起一个探针实例（不抢 3080）看它能否
+    起到 listen + 无 pending 报错；已跑的实例必须重启（client bundle 在 boot 时缓存）+
+    硬刷新页面。
 - ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
   `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
