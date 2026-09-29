@@ -235,12 +235,37 @@ settings.yaml，否则 TUI 冲突复发。
   (deepseek-official/deepseek-v4-flash)`（`lib/types/modelRoute.js`），所以 TUI
   横幅仍显示旧名 `deepseek-v4-flash`；要在 TUI 用 `deepseek-flash` 得在 TUI 内
   `/model` 选一次（会持久化）。
+  （2026-09-29 已完成升级：`npm i -g @deepseek-ai/dsh@0.2.0-rc.1`；npm i -g 会把 pi-ai
+  整树重建回 0.85.1，重跑 `scripts/refresh-pi-ai.sh` 换回 0.87.1；TUI 0.11.2 真实 boot
+  通过、版本横幅警告消失，headless 一句话 OK，web 组合到 listen 阶段（3080 被已在跑的
+  旧实例占用 → EADDRINUSE，非升级问题）。升级途中 TUI 一度 startup failed，见下面
+  「0.2.0-rc.1 的两个新坑」。）
+- ⚠️ **dsh 0.2.0-rc.1 的两个新坑**（2026-09-29 实测）：
+  - **profile 依赖必须重装**：0.2.0-rc.1 下 dsh-tui 0.11.2 startup failed
+    ——「profile-backed settings require @deepseek-ai/schemastery >= 3.18.3」，profile 里
+    钉的是 3.18.2；`pnpm update @deepseek-ai/schemastery --depth 9999`（→ 3.18.4）才起得来。
+    ⚠️ 该 update 会重跑 install，事后复查补丁三件事（标记 / vendor 1.1M / node --check）。
+  - **新增 peer 兼容门禁**：bundles 里 peer 范围不含当前 engine 的插件会被
+    `skipping profile bundle "<name>": Plugin … is incompatible with dsh 0.2.0-rc.1`
+    **整包静默跳过**（不崩，功能消失）。web profile 现状：dshmarket@1.58.0（可升 1.66.5，
+    其 peer 已含 ^0.2.0-rc.1）、@nanmicoder/dsh-agent-teams@0.1.20（0.1.22 只认
+    0.1.5-rc.3 / 0.1.7-rc.2 / 0.2.0-rc.2，仍不含 0.2.0-rc.1）、dsh-builtin-browser@0.1.22
+    与 dsh-fetch-file@0.1.2（无新版，需 `dsh plugin allow-version` 显式豁免或弃用）。
+  - ⚠️ **别升 engine 到 0.2.0-rc.2**：dsh-tui 0.11.2 的 peer 名单止于 **0.2.0-rc.1**，
+    升 rc.2 会把 TUI bundle 自己门禁掉。（2026-09-29 决策：**停在 0.2.0-rc.1 等 TUI 适配**
+    ——npm 上 dsh-tui 最新仍 0.11.2、无版本支持 rc.2；rc.2 的收益主要是 web 侧
+    `@nanmicoder/dsh-agent-teams@0.1.22` 可解禁，不急。将来 TUI 新版名单含 rc.2 时再走
+    完整链路：`npm i -g` → `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 → 真 boot 三 profile；
+    不愿等也可 `dsh plugin allow-version` 精确豁免硬上，但工具明说 risky。）
 - ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
   `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
   三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+  - ✅ **0.11.2 基线已重做**（2026-09-29）：补丁与键改名为 `...@0.11.2.patch`，5 个文件
+    原 hunks 只有 1 处上下文漂移（`plugin.js` schema 尾部 `}));` → `}), () => {`，
+    其余靠 `patch --fuzz` 原样套上）；重生成后再验证三件事全过。
   - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
     `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
     **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
@@ -249,6 +274,11 @@ settings.yaml，否则 TUI 冲突复发。
     加 `allowUnusedPatches: true`：这类升级先装上去（仅 `[WARN] patches were not used`，
     期间 TUI 跑原版），补丁按上面的流程事后移植；也可用
     `--config.allowUnusedPatches=true` 临时绕过一次。
+  - ⚠️ **allowBuilds 重复键会整批崩**（2026-09-29 实测）：预置是盲追加——`@google/genai`
+    若已在 `allowBuilds` 里（上次升级加过），`/update` 会再插一行同名键，pnpm 报
+    `[ERROR] duplicated mapping key` 直接退出（manifest/node_modules 原样，只有
+    release-age exclude 被预置）。修复：删掉重复行，再手工 bump 版本 + `pnpm install`。
+    **0.11.2 的 `ensureProfileAllowBuilds` 已按 present 查重**，之后不会再犯。
 - ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
   （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
   整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
@@ -278,6 +308,11 @@ settings.yaml，否则 TUI 冲突复发。
   settings writer 按内存里的旧文档回写，会重现**过时注释**（2026-09-10 实测：新写在
   `agent-default-model` 下的注释被昨天的旧注释覆盖，同时 description 被按 80 列折行）。
   改完这个分节要复查文本，别只看值。
+  ✅ **entry 层漏抄的 base 字段已补回**（2026-09-29）：dsh-tui bundle 的 llm-deepseek
+  base 是 apiKeyEnv/baseURL/thinking/**reasoningEffort: max**（0.10.2 与 0.11.2 tarball
+  均实测），profile entry 层整体替换此前只带 3 个 → base 的 max 被顶掉；现已在
+  `cordis.patch.yml.tmpl` 补 `reasoningEffort: max` 并 chezmoi apply 到 live（vanilla parity，
+  实测 live 第 88 行生效）。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
@@ -318,6 +353,8 @@ settings.yaml，否则 TUI 冲突复发。
   不受影响。换装后须重启会话（模型注册表 boot 时构建）。首次换装 0.85.1→
   0.87.1：codex 路由 +gpt-6-luna/gpt-6-sol、−gpt-5.4/gpt-5.4-mini；zai 目录
   自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
+  2026-09-29 升 engine 0.2.0-rc.1 后按上述流程重跑一次（npm i -g 已把树还原成
+  0.85.1）：0.85.1→0.87.1，模型增删与首次完全一致，`.bak-0.85.1` 已在位。
   原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
   dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
 - ⚠️ **桌面版 pi-ai 模型列表（0.1.7-rc.2）**：app.asar 自带 pi-ai 0.85.1，
