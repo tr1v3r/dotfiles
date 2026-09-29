@@ -77,13 +77,15 @@
               xhigh: xhigh
               max: max
 
-# base（apiKeyEnv/baseURL/thinking）由 dsh-tui bundle 设置，整体替换须带上；
-# maxTokens 抬到官方上限 384K=393216。
+# base（apiKeyEnv/baseURL/thinking/reasoningEffort）由 dsh-tui bundle 设置，整体替换须带上；
+# maxTokens 抬到官方上限 384K=393216。（reasoningEffort: max 是 bundle base 的原始值，
+# 0.10.2 与 0.11.2 tarball 的 cordis.patch.yml 均实测；此前漏抄，2026-09-29 补回。）
 - id: llm-deepseek
   config:
     apiKeyEnv: DEEPSEEK_API_KEY
     baseURL: !!js process.env.DEEPSEEK_BASE_URL
     thinking: enabled
+    reasoningEffort: max
     maxTokens: 393216
 
 # entry 层默认模型兜底（settings.yaml 被桌面版吃掉时的 floor）。

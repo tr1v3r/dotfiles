@@ -23,4 +23,4 @@ minimumReleaseAgeExclude:
 nodeLinker: hoisted
 
 patchedDependencies:
-  "@deepseek-harness-tui/dsh-tui@0.10.2": patches/@deepseek-harness-tui__dsh-tui@0.10.2.patch
+  "@deepseek-harness-tui/dsh-tui@0.11.2": patches/@deepseek-harness-tui__dsh-tui@0.11.2.patch
