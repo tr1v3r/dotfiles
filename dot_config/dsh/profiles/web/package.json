@@ -9,7 +9,7 @@
     "@liustack/modsearch": "5.10.5",
     "@nanmicoder/dsh-agent-teams": "0.1.20",
     "@tr1v3r/dsh-ltm": "0.2.1",
-    "@tr1v3r/dsh-proxy": "0.2.1",
+    "@tr1v3r/dsh-proxy": "0.2.4",
     "@tt-a1i/archify-dsh": "^0.1.0",
     "dsh-at-file": "^0.6.3",
     "dsh-builtin-browser": "^0.1.21",

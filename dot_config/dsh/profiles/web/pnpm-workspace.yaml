@@ -5,7 +5,7 @@ nodeLinker: hoisted
 autoInstallPeers: false
 minimumReleaseAgeExclude:
   - '@tr1v3r/dsh-ltm@0.2.0 || 0.2.1'
-  - '@tr1v3r/dsh-proxy@0.2.0 || 0.2.1'
+  - '@tr1v3r/dsh-proxy@0.2.0 || 0.2.1 || 0.2.4'
   - '@liustack/modsearch@5.10.0 || 5.10.2 || 5.10.3 || 5.10.4 || 5.10.5'
   - dsh-builtin-browser@0.1.20
   - dshmarket@1.35.0 || 1.44.0 || 1.45.0 || 1.47.0 || 1.48.0 || 1.52.0 || 1.55.0 || 1.58.0
