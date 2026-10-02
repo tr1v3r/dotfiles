@@ -73,6 +73,21 @@ dsh/
 该路由的 pi-ai 内置 catalog（不是追加）；分节 schema 校验失败时 settings seam 保留
 上一份可用值并告警，不写盘。
 
+⚠️ 2026-09-28 桌面版 settings 导入器会吃掉 settings.yaml（GLM 消失事故）：桌面
+0.1.7-rc.2 起 `@deepseek-ai/dsh-settings` 把 legacy settings.yaml 视为待导入文档——
+**每次** app-boot/config-reload 时只要文件存在就无条件 `rename` 成
+`settings.yaml.imported` 再按 entry 体系吸收（改名即唯一的"只导入一次"守卫；组合不认
+的分节只留在改名文件里；0.1.7 不回写 legacy 文件）。CLI 0.1.5 的 web/tui/headless
+仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。**对策（已落地）**：
+zai/traex 提供方、llm-deepseek maxTokens、默认模型 floor 已常驻三个 CLI profile 的
+`cordis.patch.yml` entry 层（TUI 另含 vimKeys；注意 patch config 是整体替换，TUI 的
+llm-deepseek/dsh-tui 条目连带抄了 0.10.2 base 字段，升 TUI 需重新对照 dump）；
+settings.yaml 的同名分节保留为热加载层，两层等值叠加、互为兜底。dsh-better-sidebar/
+dsh-ssh 字体分节未迁（entry id 不明，属低风险装饰项）。恢复被吃的文件：
+`chezmoi apply ~/.config/dsh/settings.yaml`（live 为渲染文件非 symlink）。
+桌面侧配置已由导入器落在 `profiles/desktop/cordis.patch.yml`（chezmoi 已跟踪）。
+CLI 升 0.1.7 后（跟踪 #983）legacy 文件退役，entry 层即唯一来源。
+
 ## LLM 适配器体系与 ⚠️ 路由注册冲突（重要）
 
 TUI 树里同时存在三个 LLM 适配器：
@@ -173,23 +188,32 @@ settings.yaml，否则 TUI 冲突复发。
   2026-09-08 移除，替代方案待定。
 - **dsh-quote-followup 插件**（2026-09-07，独立仓库 `~/workspace/opensource/dsh-quote-followup`
   （github.com/tr1v3r/dsh-quote-followup，master 分支），仅 Web profile 依赖 npm 版
-  `^0.2.6`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
+  `^0.2.8`，要求 DSH `>=0.1.2-rc.1`）：「选中对话内容→针对性追问」。0.2.1 起
   Web-only，TUI profile 已移除。0.2.3 通过 `inputTriggers` 注册 codec-only source，复用
   composer 已注册的 `ReferenceChipNode`，以原生对话 chip 展示引用；发送时 codec 再展开为
   模型可读 Markdown，旧 host 缺少 chip 能力时降级到纯文本。0.2.4 同时注入 `locale`，按钮、
   序列化引用框架随 DSH 中英文切换；chip 视觉标签只保留摘录正文，去掉冗余角色前缀。
   ⚠️ 版本线：0.2.5 给序列化引用挂 turn provenance + 补 CI（测试矩阵、tag 门控发布）；
   0.2.6（#4）把角色标签按 locale 本地化（zh/en，不再硬编码英文）、`decodeQuote` 对畸形/
-  旧引用返回 null 而非抛错（发送路径降级为空投影，不炸 send）。
+  旧引用返回 null 而非抛错（发送路径降级为空投影，不炸 send）；0.2.7（#8）按钮改用 DSH
+  设计 token；0.2.8 = #9（跨消息选区不再冒领起始行的 role/turn，插入失败时恢复选区并给
+  localized 提示）+ #10（插入改走 session 级 `scope.get("conversation").input.for(scope)`
+  的 `insertReference`，不再读 `_nodes`/`_nodeMap`/`_pendingEditorState`——这是 0.2.8 前
+  「quote 完全失效」的真因：插件读了未声明 inject 的 `sessions`，`ctx.sessions` 取值即抛
+  「cannot get property "sessions" without inject」，故 `inject` 补 `sessions`；被 admission
+  拒绝的编辑不走文本兜底，仅缺 facade 时降级）。
   ⚠️ 四个运行时坑：① 不可直接
   改 contenteditable DOM；② Firefox 的合成 `ClipboardEvent` 可能丢 `clipboardData`，文本
   后备必须从 `__lexicalEditor._commands` 解析 `PASTE_COMMAND`；③ 旧页/hot swap 会残留
   mounted 锁和共用按钮，新 client 要用 versioned state + button ownership 接管；④ Web
   服务在 boot 时缓存 client bundle，更新包后必须同时**重启服务并刷新/重开旧页面**。
   回归：`npm test`；真实验证同时查 chip/DOM 与 `__lexicalEditor.getEditorState()`，并覆盖
-  系统 Firefox。发布后改 profile 版本号，再在**实际 runtime target** 跑 `dsh plugin
-  --profile web clean --lockfile && dsh plugin --profile web install --no-frozen-lockfile`；不要只在
-  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。
+  系统 Firefox。发布后改 profile 版本号（chezmoi source 与 runtime 的 package.json 都要改：
+  runtime 那份是普通副本不是 symlink，两边会各自漂移，只改一边等于没改），再在
+  **实际 runtime target** 跑 `dsh plugin --profile web install --no-frozen-lockfile`；不要只在
+  chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。⚠️ `dsh plugin`
+  只是把参数转发给 pnpm，`clean` 不是 pnpm 子命令（2026-09-24 实测无效，原约定里的
+  `clean --lockfile` 已去掉）。
   pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
@@ -211,12 +235,52 @@ settings.yaml，否则 TUI 冲突复发。
   (deepseek-official/deepseek-v4-flash)`（`lib/types/modelRoute.js`），所以 TUI
   横幅仍显示旧名 `deepseek-v4-flash`；要在 TUI 用 `deepseek-flash` 得在 TUI 内
   `/model` 选一次（会持久化）。
+  （2026-09-29 已完成升级：`npm i -g @deepseek-ai/dsh@0.2.0-rc.1`；npm i -g 会把 pi-ai
+  整树重建回 0.85.1，重跑 `scripts/refresh-pi-ai.sh` 换回 0.87.1；TUI 0.11.2 真实 boot
+  通过、版本横幅警告消失，headless 一句话 OK，web 组合到 listen 阶段（3080 被已在跑的
+  旧实例占用 → EADDRINUSE，非升级问题）。升级途中 TUI 一度 startup failed，见下面
+  「0.2.0-rc.1 的两个新坑」。）
+- ⚠️ **dsh 0.2.0-rc.1 的三个新坑**（2026-09-29 实测）：
+  - **profile 依赖必须重装**：0.2.0-rc.1 下 dsh-tui 0.11.2 startup failed
+    ——「profile-backed settings require @deepseek-ai/schemastery >= 3.18.3」，profile 里
+    钉的是 3.18.2；`pnpm update @deepseek-ai/schemastery --depth 9999`（→ 3.18.4）才起得来。
+    ⚠️ 该 update 会重跑 install，事后复查补丁三件事（标记 / vendor 1.1M / node --check）。
+  - **新增 peer 兼容门禁**：bundles 里 peer 范围不含当前 engine 的插件会被
+    `skipping profile bundle "<name>": Plugin … is incompatible with dsh 0.2.0-rc.1`
+    **整包静默跳过**（不崩，功能消失）。web profile 现状：dshmarket@1.58.0（可升 1.66.5，
+    其 peer 已含 ^0.2.0-rc.1）、@nanmicoder/dsh-agent-teams@0.1.20（0.1.22 只认
+    0.1.5-rc.3 / 0.1.7-rc.2 / 0.2.0-rc.2，仍不含 0.2.0-rc.1）、dsh-builtin-browser@0.1.22
+    与 dsh-fetch-file@0.1.2（无新版，需 `dsh plugin allow-version` 显式豁免或弃用）。
+  - ⚠️ **别升 engine 到 0.2.0-rc.2**：dsh-tui 0.11.2 的 peer 名单止于 **0.2.0-rc.1**，
+    升 rc.2 会把 TUI bundle 自己门禁掉。（2026-09-29 决策：**停在 0.2.0-rc.1 等 TUI 适配**
+    ——npm 上 dsh-tui 最新仍 0.11.2、无版本支持 rc.2；rc.2 的收益主要是 web 侧
+    `@nanmicoder/dsh-agent-teams@0.1.22` 可解禁，不急。将来 TUI 新版名单含 rc.2 时再走
+    完整链路：`npm i -g` → `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 → 真 boot 三 profile；
+    不愿等也可 `dsh plugin allow-version` 精确豁免硬上，但工具明说 risky。）
+  - ⚠️ **client 侧 `settingsScope` 服务已改名为 `configForms`**（2026-09-29 实测）：
+    官方 `dsh-client-ui-settings` 现在 provide `ctx.configForms`（取用面是
+    `ctx.configForms.get(entryId)`）；旧的 `settingsScope` 服务在 0.2.0-rc.1 已不存在
+    （`@linxin666` 系只在服务对象上留了同名属性别名，救不了按服务名 `ctx.settingsScope`
+    取用的代码）。第三方 client 模块若在**模块级 `inject` 里点 `settingsScope`，条目永久
+    pending** → web UI 弹「Failed to load plugins / web boot: N entry did not activate」，
+    本机 @tr1v3r/dsh-proxy **0.2.1 即此症，升 0.2.4 修掉**（其 #7 已把 inject 换成
+    `configForms`；排查口诀：client 侧 pending 看该包 `lib/client.js` 的模块级 `inject`）。
+    `dsh-context`（0.55.0）/`dshmarket` 只是内联 `ctx.inject(['settingsScope'],…)` 等它，
+    不阻塞条目，但它们的设置卡片会静默不出现，等上游改名。
+    改完版本号后 profile 依赖同样要**在 runtime target 重装**才生效（本机 package.json /
+    pnpm-workspace.yaml 是 symlink，改 source 即改 runtime）。
+    验证法：`dsh --profile web --port 0 --no-open` 另起一个探针实例（不抢 3080）看它能否
+    起到 listen + 无 pending 报错；已跑的实例必须重启（client bundle 在 boot 时缓存）+
+    硬刷新页面。
 - ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
   `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
   三件事：补丁标记在、`vendor/` 仍为 ~1.1M、`node --check` 过。
+  - ✅ **0.11.2 基线已重做**（2026-09-29）：补丁与键改名为 `...@0.11.2.patch`，5 个文件
+    原 hunks 只有 1 处上下文漂移（`plugin.js` schema 尾部 `}));` → `}), () => {`，
+    其余靠 `patch --fuzz` 原样套上）；重生成后再验证三件事全过。
   - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
     `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
     **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
@@ -225,6 +289,11 @@ settings.yaml，否则 TUI 冲突复发。
     加 `allowUnusedPatches: true`：这类升级先装上去（仅 `[WARN] patches were not used`，
     期间 TUI 跑原版），补丁按上面的流程事后移植；也可用
     `--config.allowUnusedPatches=true` 临时绕过一次。
+  - ⚠️ **allowBuilds 重复键会整批崩**（2026-09-29 实测）：预置是盲追加——`@google/genai`
+    若已在 `allowBuilds` 里（上次升级加过），`/update` 会再插一行同名键，pnpm 报
+    `[ERROR] duplicated mapping key` 直接退出（manifest/node_modules 原样，只有
+    release-age exclude 被预置）。修复：删掉重复行，再手工 bump 版本 + `pnpm install`。
+    **0.11.2 的 `ensureProfileAllowBuilds` 已按 present 查重**，之后不会再犯。
 - ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
   （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
   整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
@@ -254,6 +323,11 @@ settings.yaml，否则 TUI 冲突复发。
   settings writer 按内存里的旧文档回写，会重现**过时注释**（2026-09-10 实测：新写在
   `agent-default-model` 下的注释被昨天的旧注释覆盖，同时 description 被按 80 列折行）。
   改完这个分节要复查文本，别只看值。
+  ✅ **entry 层漏抄的 base 字段已补回**（2026-09-29）：dsh-tui bundle 的 llm-deepseek
+  base 是 apiKeyEnv/baseURL/thinking/**reasoningEffort: max**（0.10.2 与 0.11.2 tarball
+  均实测），profile entry 层整体替换此前只带 3 个 → base 的 max 被顶掉；现已在
+  `cordis.patch.yml.tmpl` 补 `reasoningEffort: max` 并 chezmoi apply 到 live（vanilla parity，
+  实测 live 第 88 行生效）。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
@@ -274,7 +348,61 @@ settings.yaml，否则 TUI 冲突复发。
   PromptInput.js、CommandSuggestions.js/.d.ts、dsh-adapter/plugin.js、
   utils/keymap.js）。
 - pi-ai 升级后：核对 `zai-coding-cn` 目录是否已含 glm-5.3+，若含则 settings.yaml 的
-  models 列表可精简回纯 id 列表（仍是整体替换语义）。
+  models 列表可精简为仅含 `id` 的对象列表（仍是整体替换语义；不能写裸字符串）。
+  **2026-09-23 已做且更进一步**：0.87.1 目录的 glm-5.3 系元数据（131072 maxTokens、
+  low/high/max、supportsReasoningEffort=true）不低于旧手写条目，还多出
+  supportsStrictMode / zaiToolStream 两个 compat 修正——settings 的 zai 段已整段
+  删除 models + 路由级 compat，只留 apiKeyEnv，整路由回落目录（不声明即用目录，
+  比"只列 id 的对象列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
+- **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
+  `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
+  anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
+  不联网刷新。官方路径走不通：dsh-llm-pi-ai 全部已发布版本（至 0.1.7-alpha.1）
+  都锁 pi-ai `^0.85.1`（0.x caret 不跨 minor）、dsh-auth 的 `modelOverrides`
+  缺 id 即 boot 抛错、settings 又不能声明 openai-codex（见上注册冲突坑）——
+  唯一立即生效的手段是物理替换目录：跑 `scripts/refresh-pi-ai.sh [version]`
+  （下载/预验全在临时目录完成、留 `.bak` 上一版备份、失败自动回滚、换后打印
+  各路由模型增删 diff；macOS 自带 bash 3.2 吞多字节字符，脚本里变量一律加
+  花括号）。⚠️ `npm i -g @deepseek-ai/dsh` 会整树重建、还原成 0.85.x 并删掉
+  .bak——**升级 dsh 后重跑本脚本**；`/update` 与 `dsh plugin` 只动 profile，
+  不受影响。换装后须重启会话（模型注册表 boot 时构建）。首次换装 0.85.1→
+  0.87.1：codex 路由 +gpt-6-luna/gpt-6-sol、−gpt-5.4/gpt-5.4-mini；zai 目录
+  自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
+  2026-09-29 升 engine 0.2.0-rc.1 后按上述流程重跑一次（npm i -g 已把树还原成
+  0.85.1）：0.85.1→0.87.1，模型增删与首次完全一致，`.bak-0.85.1` 已在位。
+  原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
+  dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
+- ⚠️ **桌面版 pi-ai 模型列表（0.1.7-rc.2）**：app.asar 自带 pi-ai 0.85.1，
+  与 `scripts/refresh-pi-ai.sh` 换装的全局 CLI/Web 0.87.1 是两份目录；换装全局目录
+  **不会刷新桌面目录**。桌面的 `profiles/desktop/cordis.patch.yml` 若要限定
+  `openai-codex.models`，必须写对象数组（如 `- id: gpt-6-astra`），不能写裸字符串：
+  `dsh-llm-pi-ai` 的 schema 要求每项有字符串 `id`，否则整个 `llm-pi-ai` 配置无效，
+  `zai-coding-cn` / `traex` / `openai-codex` 一起消失，界面只剩 DeepSeek。
+  `models` 会**整体替换**目录；目录已有的模型仅列 `id` 可继承元数据，桌面目录没有的
+  `gpt-6-luna` / `gpt-6-sol` 必须显式补 `contextWindow`、`maxTokens`、`input`、
+  `reasoningEfforts`，否则落到 262144/32768 等兜底值。当前桌面只保留
+  gpt-6-astra、gpt-6-luna、gpt-6-sol、gpt-5.6-sol；源文件与 live 文件是独立副本，
+  GUI 会写 live 文件，勿用源文件整份覆盖其余运行时设置。
+- **桌面版（GUI）的 DSH_HOME（2026-09-27 起与 CLI 统一到 `~/.config/dsh`）**：桌面 app
+  （`~/.dsh` 是它的默认 home）解析顺序是 *显式配置 > `$DSH_HOME` > `~/.dsh`*，且**没有 UI
+  设置项也没有启动参数**；macOS GUI 进程不继承 shell 环境，所以 `.zsh/env.zsh` 里的
+  `export DSH_HOME` 对它无效——必须注入 GUI（Aqua）域。现由 chezmoi 管理的
+  `Library/LaunchAgents/local.dsh.home-env.plist.tmpl`（→ `~/Library/LaunchAgents/
+  local.dsh.home-env.plist`，模板渲染 `{{ .chezmoi.homeDir }}`，**不写死用户名**）
+  在登录时执行 `launchctl setenv DSH_HOME <homeDir>/.config/dsh`，之后从 Dock/Finder/
+  Spotlight 启动的 app 都继承它；`open -a "DeepSeek Harness" --env DSH_HOME=...`
+  只对单次启动有效（app 已在跑时参数被忽略，必须先 Cmd-Q）。
+  - ⚠️ **`launchctl getenv DSH_HOME` 在 DSH 自己的 shell 里读不到**（与 GUI 域不是同一个
+    bootstrap namespace，实测返回空但域里其实已生效）；可靠验证是 `launchctl print
+    gui/$(id -u)/local.dsh.home-env` 的 `inherited environment`，或 GUI 启动的会话里
+    `env | grep DSH_HOME`。
+  - ⚠️ **登录项竞态**：app 若设了「登录时打开」，可能早于 RunAtLoad agent 启动而静默回落
+    `~/.dsh`（表现是会话列表/记忆突然空掉）。改动后从 Dock 手动重启一次 app。
+  - 状态迁移（会话/storages/profile/凭据合并，只增不删）用
+    `scripts/dsh-migrate-desktop-home.sh`，幂等；凭据/LTM 冲突不覆盖，见脚本头部说明。
+  - 桌面版对 `settings.yaml` 的态度随版本翻转：0.1.6 不读（未挂 `dsh-settings-file`）；
+    **0.1.7-rc.2 起主动导入并没收**（见上方 settings.yaml 节的事故记录）。它的配置
+    全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
 - settings.yaml 是热加载的，但 TUI 模型选择器建议重启后查看；`/model` 手动切模型。
 - 官方文档在安装包内：`@deepseek-ai/dsh/README.zh.md`、各插件包 `README.zh.md`
   （`dsh-llm-pi-ai`、`dsh-settings-file`、`dsh-agent-default-model` 等）；

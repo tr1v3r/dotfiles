@@ -41,6 +41,8 @@ scripts
 .config/dsh/dsh-auth
 .config/dsh/sessions
 .config/dsh/storages
+.config/dsh/dsh-runtimes
+.config/dsh/.desktop-migration
 .config/dsh/.agent-presets
 .config/dsh/memory
 .config/dsh/pet.json
@@ -56,6 +58,7 @@ scripts
 .config/dsh/profiles/*/.dsh-module-fallback
 .config/dsh/profiles/*/package.json.bak
 .config/dsh/profiles/*/cordis.yml
+.config/dsh/profiles/*/lock
 .config/dsh/**/pnpm-lock.yaml
 .config/dsh/**/node_modules
 # ~/.claude — ONLY settings.json is managed (2026-09-08 decision, see AGENTS.md);
