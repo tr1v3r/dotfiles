@@ -35,6 +35,10 @@ open = [
 	{ run = "open %s", desc = "Open", for = "macos" },
 	{ run = 'start "" %s1', orphan = true, desc = "Open", for = "windows" },
 ]
+browser = [
+	{ run = "open -a Firefox %s", orphan = true, desc = "Firefox · browser", for = "macos" },
+	{ run = "firefox %s", orphan = true, desc = "Firefox · browser", for = "linux" },
+]
 pdf-study = [
 	{ run = "sioyek %s", orphan = true, desc = "Sioyek · study", for = "macos" },
 ]
@@ -64,6 +68,10 @@ play = [
 rules = [
 	# Folder
 	{ mime = "inode/directory", use = ["edit", "open", "reveal"] },
+	# HTML: keep editing as default; offer a browser in the interactive chooser.
+	{ url = "*.{html,htm,HTML,HTM}", use = ["edit", "browser", "reveal"] },
+	{ mime = "text/html", use = ["edit", "browser", "reveal"] },
+	{ mime = "application/xhtml+xml", use = ["edit", "browser", "reveal"] },
 	# Text
 	{ mime = "text/*", use = ["edit", "reveal"] },
 	# Books: kittypdf is the default PDF reader (falls through to Sioyek); r opens the full chooser.
