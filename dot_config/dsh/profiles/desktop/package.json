@@ -3,8 +3,8 @@
   "private": true,
   "dependencies": {
     "@linxin666/dsh-liangshen": "^0.4.3",
-    "@tr1v3r/dsh-ltm": "^0.2.1",
-    "@tr1v3r/dsh-proxy": "^0.2.3",
+    "@tr1v3r/dsh-ltm": "0.3.0",
+    "@tr1v3r/dsh-proxy": "^0.2.5",
     "dsh-context": "^0.56.2",
     "dsh-quote-followup": "^0.2.10"
   },

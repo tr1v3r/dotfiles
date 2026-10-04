@@ -4,4 +4,6 @@ packages:
 nodeLinker: hoisted
 autoInstallPeers: false
 minimumReleaseAgeExclude:
+  - '@tr1v3r/dsh-ltm@0.3.0'
+  - '@tr1v3r/dsh-proxy@0.2.5'
   - dsh-quote-followup@0.2.10
