@@ -1,162 +1,195 @@
 #!/usr/bin/env bash
-# Point DeepSeek Harness Desktop (the GUI app) at the CLI/chezmoi-managed
-# DSH_HOME (~/.config/dsh) by copying the state the app accumulated under its
-# own default home (~/.dsh).
+# Merge Desktop's old ~/.dsh state into the shared ~/.config/dsh home.
+# Existing destination files ALWAYS win: credentials, memory, session logs,
+# storage and profile configuration are never replaced. The old home is kept
+# intact for manual conflict review; missing files are copied with rsync.
+# An existing desktop profile is kept as a unit (do not mix dependency trees).
 #
-# Why a copy: the desktop app and `dsh` share one home by design ("Harness home
-# shared with npm-installed dsh"), but the packaged app resolves
-# <configured> > $DSH_HOME > ~/.dsh and a macOS GUI process inherits no shell
-# env — so the app needs DSH_HOME set for the launch (or GUI domain).
+# Usage: scripts/dsh-migrate-desktop-home.sh [--force] [--dry-run] [--link]
+#   --force    allow a best-effort live COPY (never allowed with --link).
+#   --dry-run  print the plan without modifying either home.
+#   --link     after copying, rename ~/.dsh to a private timestamped backup and
+#              use chezmoi to deploy ~/.dsh -> ~/.config/dsh. Quit Desktop first.
+#              This option only accepts the default source/target paths.
 #
-# Safety: this script only ADDS to the destination. The source home is never
-# modified or deleted, so it doubles as the rollback copy. Credential and LTM
-# memory stores are never overwritten: a conflicting destination wins and the
-# incoming copy is parked beside it for manual review.
-#
-# Usage:
-#   scripts/dsh-migrate-desktop-home.sh [--force] [--dry-run]
-#
-#   --force    proceed while the Desktop app is running: best-effort live copy.
-#              The session executing the script is skipped (its log is still
-#              being appended); re-run after quitting to pick it up flushed.
-#   --dry-run  print the plan, change nothing.
-#
-# Typical sequence:
-#   1. scripts/dsh-migrate-desktop-home.sh --force   # pre-stage while app runs
-#   2. Cmd-Q the app completely
-#   3. scripts/dsh-migrate-desktop-home.sh           # final, consistent copy
-#   4. open -a "DeepSeek Harness" --env DSH_HOME="$HOME/.config/dsh"
+# Typical sequence (run from a separate terminal, after Cmd-Q):
+#   bash scripts/dsh-migrate-desktop-home.sh --dry-run --link
+#   bash scripts/dsh-migrate-desktop-home.sh --link
+# Conflicting files remain in the backup. Independent SQLite memory databases
+# are NOT merged; the old store is retained for manual review.
 set -euo pipefail
 
-SRC="${DSH_MIGRATE_SRC:-${HOME}/.dsh}"
-DST="${DSH_MIGRATE_DST:-${HOME}/.config/dsh}"
-PARK="${DST}/.desktop-migration"
+SRC="${DSH_MIGRATE_SRC:-${HOME:?}/.dsh}"
+DST="${DSH_MIGRATE_DST:-${HOME:?}/.config/dsh}"
 FORCE=0
 DRY=0
+LINK=0
 
 for arg in "$@"; do
     case "${arg}" in
         --force) FORCE=1 ;;
         --dry-run) DRY=1 ;;
-        -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+        --link) LINK=1 ;;
+        -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
         *) echo "unknown option: ${arg}" >&2; exit 2 ;;
     esac
 done
 
 note() { printf '  %s\n' "$*"; }
 step() { printf '\n== %s\n' "$*"; }
-
 run() {
     if [ "${DRY}" -eq 1 ]; then
-        printf '  [dry-run] %s\n' "$*"
+        printf '  [dry-run]'; printf ' %q' "$@"; printf '\n'
     else
         "$@"
     fi
 }
-
-# rsync -a minus owner/group: a non-root copy must not try to preserve them.
-RSYNC=(rsync -rlptD)
+fail() { echo "$*" >&2; exit 1; }
 
 step "plan"
 note "source home : ${SRC}"
 note "target home : ${DST}"
-note "mode        : $([ "${DRY}" -eq 1 ] && echo dry-run || echo copy) $([ "${FORCE}" -eq 1 ] && echo '(force/live)')"
-
-[ "${SRC}" != "${DST}" ] || { echo "source and target are the same directory" >&2; exit 1; }
-[ -d "${SRC}" ] || { echo "source home not found: ${SRC}" >&2; exit 1; }
-
-if [ "${FORCE}" -eq 1 ]; then
-    note "app running : check skipped (--force)"
-elif pgrep -f "DeepSeek Harness" >/dev/null 2>&1; then
-    echo "the Desktop app appears to be running; quit it (Cmd-Q) or pass --force" >&2
-    exit 1
+if [ "${LINK}" -eq 1 ]; then
+    [ "${FORCE}" -eq 0 ] || fail "--link cannot be combined with --force; quit Desktop first"
+    [ "${SRC}" = "${HOME:?}/.dsh" ] && [ "${DST}" = "${HOME:?}/.config/dsh" ] ||
+        fail "--link only supports the default ~/.dsh and ~/.config/dsh paths"
+fi
+[ -d "${SRC}" ] || fail "source home not found: ${SRC}"
+SRC_REAL=$(cd "${SRC}" && pwd -P)
+if [ -d "${DST}" ]; then
+    DST_REAL=$(cd "${DST}" && pwd -P)
+    if [ "${SRC_REAL}" = "${DST_REAL}" ]; then
+        if [ "${LINK}" -eq 1 ]; then
+            [ -L "${SRC}" ] && [ "$(readlink "${SRC}")" = "${DST}" ] ||
+                fail "same-home alias is not the intended ~/.dsh -> ~/.config/dsh link"
+        fi
+        note "already using the same physical home; nothing to migrate"
+        exit 0
+    fi
 else
-    note "app running : no"
+    [ ! -e "${DST}" ] && [ ! -L "${DST}" ] || fail "target is not a directory: ${DST}"
+    DST_PARENT=$(cd "$(dirname "${DST}")" && pwd -P)
+    DST_REAL="${DST_PARENT}/$(basename "${DST}")"
+fi
+case "${DST_REAL}/" in "${SRC_REAL}/"*) fail "target must not be inside source" ;; esac
+case "${SRC_REAL}/" in "${DST_REAL}/"*) fail "source must not be inside target" ;; esac
+
+if [ "${DRY}" -eq 1 ]; then
+    note "preview only; process check deferred until actual migration"
+elif [ "${FORCE}" -eq 1 ]; then
+    note "app running : check skipped (--force, copy only)"
+else
+    # A denied process query must not be mistaken for 'Desktop is stopped'.
+    PROCESSES=$(ps -axo comm=) || fail "cannot inspect processes; migration aborted"
+    case "${PROCESSES}" in
+        *"DeepSeek Harness"*) fail "Desktop is running; quit it (Cmd-Q) before migrating" ;;
+    esac
+    note "app running : no Desktop process found"
 fi
 
-[ "${DRY}" -eq 1 ] || mkdir -p "${DST}"
-
-# ---------------------------------------------------------------- identity --
-step "identity and credentials"
-if [ -e "${DST}/.anonymous-user-id" ]; then
-    note "keep existing .anonymous-user-id"
-else
-    run cp -p "${SRC}/.anonymous-user-id" "${DST}/.anonymous-user-id"
+if [ "${LINK}" -eq 1 ]; then
+    HOME_REAL=$(cd "${HOME:?}" && pwd -P)
+    [ ! -L "${SRC}" ] && [ "${SRC_REAL}" = "${HOME_REAL}/.dsh" ] ||
+        fail "refusing to rename a nonstandard or symlinked source home"
+    # Validate the managed target BEFORE moving anything.
+    EXPECTED_LINK=$(chezmoi cat "${SRC}") || fail "cannot read chezmoi's symlink rule"
+    [ "${EXPECTED_LINK}" = "${DST}" ] || fail "chezmoi's ~/.dsh rule must target ${DST}"
+    BACKUP="${HOME_REAL}/.dsh.backup-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+    [ ! -e "${BACKUP}" ] && [ ! -L "${BACKUP}" ] || fail "backup already exists: ${BACKUP}"
+    note "backup home : ${BACKUP}"
 fi
 
-if [ -e "${DST}/.credentials.yaml" ]; then
-    # The CLI store is normally the richer one (pi-ai keys, oauth routes); never
-    # clobber it. Park the app's store in .desktop-migration/ for a manual merge.
-    run mkdir -p "${PARK}"
-    run cp -p "${SRC}/.credentials.yaml" "${PARK}/.credentials.yaml"
-    note "destination .credentials.yaml kept; app copy parked in ${PARK}/.credentials.yaml"
-    note "top-level keys, CLI (kept):        $(grep -oE '^[A-Za-z0-9_-]+:' "${DST}/.credentials.yaml" | tr -d ':' | paste -sd, -)"
-    note "top-level keys, desktop (parked):  $(grep -oE '^[A-Za-z0-9_-]+:' "${SRC}/.credentials.yaml" | tr -d ':' | paste -sd, -)"
-else
-    run cp -p "${SRC}/.credentials.yaml" "${DST}/.credentials.yaml"
-    note "copied .credentials.yaml"
-fi
+run mkdir -p "${DST}"
+# Do not change permissions or timestamps of existing destination directories.
+RSYNC=(rsync -rlD --ignore-existing)
+# Publish whole trees only after rsync succeeds. An interrupted copy must not
+# leave memory/ or profiles/desktop/ looking like a complete destination.
+copy_tree() {
+    local source="$1" target="$2" park stage stage_real park_real target_parent
+    shift 2
+    park="${DST}/.desktop-migration"
+    run mkdir -p "${park}" "$(dirname "${target}")"
+    if [ "${DRY}" -eq 1 ]; then
+        stage="${park}/tree.dry-run-$$"
+    else
+        stage=$(mktemp -d "${park}/tree.XXXXXX")
+    fi
+    run "${RSYNC[@]}" "$@" "${source}/" "${stage}/tree/"
+    [ ! -e "${target}" ] && [ ! -L "${target}" ] || fail "target appeared during copy: ${target}"
+    if [ "${DRY}" -eq 0 ]; then
+        park_real=$(cd "${park}" && pwd -P)
+        stage_real=$(cd "${stage}" && pwd -P)
+        target_parent=$(cd "$(dirname "${target}")" && pwd -P)
+        [ "${stage_real}" = "${park_real}/$(basename "${stage}")" ] &&
+            [ ! -L "${stage}/tree" ] && [ -d "${stage}/tree" ] || fail "unexpected staging path"
+        case "${target_parent}/" in
+            "$(cd "${DST}" && pwd -P)/"*) ;;
+            *) fail "copy target escaped the destination home" ;;
+        esac
+    fi
+    # Resolved staging and target-parent paths were checked before this move.
+    run mv "${stage}/tree" "${target}"
+}
+step "identity and credentials (destination wins)"
+for name in .anonymous-user-id .credentials.yaml; do
+    if [ -e "${DST}/${name}" ] || [ -L "${DST}/${name}" ]; then
+        note "keep existing ${name}; old copy stays in source/backup"
+    elif [ -f "${SRC}/${name}" ]; then
+        run cp -p "${SRC}/${name}" "${DST}/${name}"
+    fi
+done
 
-# ------------------------------------------------------------- session state -
-step "sessions (merge, destination-only files kept)"
+step "sessions and storages (missing files only)"
 EXCLUDES=(--exclude '.DS_Store' --exclude 'session.lock')
 if [ "${FORCE}" -eq 1 ] && [ -n "${DSH_SESSION_ID:-}" ]; then
-    EXCLUDES+=(--exclude "*/${DSH_SESSION_ID}")
-    note "skipping the live session ${DSH_SESSION_ID}"
+    EXCLUDES+=(--exclude "*${DSH_SESSION_ID}*")
+    note "skip live session ${DSH_SESSION_ID}"
 fi
-if [ -d "${SRC}/sessions" ]; then
-    run "${RSYNC[@]}" "${EXCLUDES[@]}" "${SRC}/sessions/" "${DST}/sessions/"
-    note "sessions: $(find "${SRC}/sessions" -name '*.zstd' 2>/dev/null | wc -l | tr -d ' ') logs in source"
-else
-    note "no sessions/ in source"
-fi
-
-step "storages (merge)"
-if [ -d "${SRC}/storages" ]; then
-    run "${RSYNC[@]}" "${SRC}/storages/" "${DST}/storages/"
-else
-    note "no storages/ in source"
-fi
+for name in sessions storages; do
+    if [ -d "${SRC}/${name}" ]; then
+        run "${RSYNC[@]}" "${EXCLUDES[@]}" "${SRC}/${name}/" "${DST}/${name}/"
+    fi
+done
 
 step "LTM memory"
-# Two independent SQLite stores cannot be merged automatically. The CLI home's
-# store is normally the substantial one; park the app's instead of replacing it.
-if [ -e "${DST}/memory/ltm.db" ]; then
-    run mkdir -p "${PARK}/memory"
-    run "${RSYNC[@]}" "${SRC}/memory/" "${PARK}/memory/"
-    note "destination memory/ kept; app memory parked in ${PARK}/memory/"
-    note "to adopt it: stop both apps, then swap the directories yourself"
-else
-    run mkdir -p "${DST}/memory"
-    run "${RSYNC[@]}" "${SRC}/memory/" "${DST}/memory/"
-    note "copied memory/"
+if [ -e "${DST}/memory" ] || [ -L "${DST}/memory" ]; then
+    note "keep entire destination memory/; old store stays in source/backup"
+elif [ -d "${SRC}/memory" ]; then
+    copy_tree "${SRC}/memory" "${DST}/memory"
 fi
 
-# ------------------------------------------------------------ app profile ---
-step "desktop profile (bundles + installed plugins)"
-note "the app writes profiles/desktop itself; 'lock' is a runtime lock and is skipped"
-if [ -d "${SRC}/profiles/desktop" ]; then
-    run "${RSYNC[@]}" --exclude 'lock' "${SRC}/profiles/desktop/" "${DST}/profiles/desktop/"
-else
-    note "no profiles/desktop in source (the app will create one)"
+step "desktop profile (keep dependency tree together)"
+if [ -e "${DST}/profiles/desktop" ] || [ -L "${DST}/profiles/desktop" ]; then
+    note "keep entire destination profile; old configuration stays in source/backup"
+elif [ -d "${SRC}/profiles/desktop" ]; then
+    copy_tree "${SRC}/profiles/desktop" "${DST}/profiles/desktop" --exclude 'lock'
 fi
 
-# ------------------------------------------------------------- what is left --
 step "intentionally NOT copied"
-note "dsh-runtimes/     — 359MB payload the host re-syncs from the app bundle on first boot"
-note "settings.yaml     — 0.1.6 builds never read it; 0.1.7-rc.2+ IMPORTS it once per boot"
-note "                   (renames to settings.yaml.imported). Post-migration: keep LLM"
-note "                   providers in profile cordis.patch.yml entry config (see dsh AGENTS.md)"
+note "dsh-runtimes/ — Desktop re-syncs this payload from the app bundle"
+note "settings.yaml — legacy import can consume it; use profile entry config"
+note "conflicts and other old state — kept in the original home or backup"
 
-step "next"
-cat <<EOF
-  1. quit the Desktop app completely (Cmd-Q)
-  2. re-run this script WITHOUT --force to capture the final session logs
-  3. relaunch pointed at the shared home:
-       open -a "DeepSeek Harness" --env DSH_HOME="${DST}"
-     or persistently, for Dock/Finder launches (survives until reboot):
-       launchctl setenv DSH_HOME "${DST}"
-     or a LaunchAgent running that launchctl line at login.
-  4. verify inside a new session:  env | grep -E 'DSH_HOME|DSH_PROFILE_DIR'
-  5. rollback: quit the app, then relaunch without DSH_HOME (its default is ${SRC}).
-EOF
+if [ "${LINK}" -eq 1 ]; then
+    step "backup and deploy managed link"
+    # Both paths are checked absolute paths: SRC_REAL is exactly HOME_REAL/.dsh,
+    # BACKUP is a nonexistent sibling, and the physical target is not nested.
+    # Recheck immediately before the move; never rename an unexpected symlink.
+    [ ! -L "${SRC}" ] && [ "$(cd "${SRC}" && pwd -P)" = "${SRC_REAL}" ] ||
+        fail "source home changed during migration"
+    [ ! -e "${BACKUP}" ] && [ ! -L "${BACKUP}" ] || fail "backup path changed"
+    run mv "${SRC}" "${BACKUP}"
+    if ! run chezmoi apply --exclude scripts "${SRC}"; then
+        fail "link deployment failed; old home is safe at ${BACKUP}. Restore it before restarting Desktop."
+    fi
+    if [ "${DRY}" -eq 0 ]; then
+        [ -L "${SRC}" ] && [ "$(cd "${SRC}" && pwd -P)" = "$(cd "${DST}" && pwd -P)" ] ||
+            fail "link verification failed; old home is safe at ${BACKUP}"
+    fi
+    note "old home retained at ${BACKUP}; review conflicts there (contains secrets)"
+    note "rollback: quit Desktop; move the link aside, restore the backup, and disable the chezmoi link rule"
+else
+    step "next"
+    note "quit Desktop, then run this script with --link to back up the old home and deploy the symlink"
+    note "do NOT run chezmoi apply on ~/.dsh while it is still a real directory"
+fi

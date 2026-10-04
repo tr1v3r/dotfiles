@@ -386,7 +386,9 @@ settings.yaml，否则 TUI 冲突复发。
 - **桌面版（GUI）的 DSH_HOME（2026-09-27 起与 CLI 统一到 `~/.config/dsh`）**：桌面 app
   （`~/.dsh` 是它的默认 home）解析顺序是 *显式配置 > `$DSH_HOME` > `~/.dsh`*，且**没有 UI
   设置项也没有启动参数**；macOS GUI 进程不继承 shell 环境，所以 `.zsh/env.zsh` 里的
-  `export DSH_HOME` 对它无效——必须注入 GUI（Aqua）域。现由 chezmoi 管理的
+  `export DSH_HOME` 对它无效。**默认 home 另由 chezmoi 的 `symlink_dot_dsh.tmpl`
+  管理为 `~/.dsh → ~/.config/dsh`**，即使 GUI 域环境变量未注入或登录项抢先启动，
+  也会落到同一个物理目录。环境变量注入仍保留作为显式 home 设置，由 chezmoi 管理的
   `Library/LaunchAgents/local.dsh.home-env.plist.tmpl`（→ `~/Library/LaunchAgents/
   local.dsh.home-env.plist`，模板渲染 `{{ .chezmoi.homeDir }}`，**不写死用户名**）
   在登录时执行 `launchctl setenv DSH_HOME <homeDir>/.config/dsh`，之后从 Dock/Finder/
@@ -396,10 +398,18 @@ settings.yaml，否则 TUI 冲突复发。
     bootstrap namespace，实测返回空但域里其实已生效）；可靠验证是 `launchctl print
     gui/$(id -u)/local.dsh.home-env` 的 `inherited environment`，或 GUI 启动的会话里
     `env | grep DSH_HOME`。
-  - ⚠️ **登录项竞态**：app 若设了「登录时打开」，可能早于 RunAtLoad agent 启动而静默回落
-    `~/.dsh`（表现是会话列表/记忆突然空掉）。改动后从 Dock 手动重启一次 app。
-  - 状态迁移（会话/storages/profile/凭据合并，只增不删）用
-    `scripts/dsh-migrate-desktop-home.sh`，幂等；凭据/LTM 冲突不覆盖，见脚本头部说明。
+  - ⚠️ **首次部署先迁移**：`~/.dsh` 若仍是实目录，**不要直接对它 chezmoi apply**。
+    在独立终端、Cmd-Q 完全退出桌面版后，先运行
+    `bash scripts/dsh-migrate-desktop-home.sh --dry-run --link` 检查计划，再运行
+    `bash scripts/dsh-migrate-desktop-home.sh --link`。脚本仅复制缺失会话/状态；目标同名
+    文件一律保留，已有 desktop profile 与 memory 作为整体保留，不混装依赖或 SQLite。
+    然后把旧目录改名为 `~/.dsh.backup-<UTC时间>-<pid>`，保留所有冲突与凭据，再仅部署
+    `.dsh` 链接（排除 apply scripts，不覆盖整个 dsh 配置）。独立记忆库与同名会话日志
+    不自动合并，需在备份中人工审查；备份含秘密，不提交。进程查询失败时拒绝迁移。
+  - `scripts/dsh-migrate-desktop-home.sh` 默认只复制、不切换目录；`--force` 只允许预复制，
+    不能与 `--link` 同用。源/目标为同一物理目录时直接退出，链接部署后重跑安全。
+    回滚时先停 app，移开软链接并恢复备份，同时停用 chezmoi 的链接规则；仅清除
+    `DSH_HOME` 不再能回滚。登录项竞态由链接兜底，首次部署后从 Dock 手动重启 app。
   - 桌面版对 `settings.yaml` 的态度随版本翻转：0.1.6 不读（未挂 `dsh-settings-file`）；
     **0.1.7-rc.2 起主动导入并没收**（见上方 settings.yaml 节的事故记录）。它的配置
     全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
