@@ -20,8 +20,8 @@ hash = "e17c11b605d989568a1d1741ca17c584"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:piper"
-rev = "9a52857"
-hash = "a20327710c3a8d37ee0972128dcb6a31"
+rev = "6229767"
+hash = "d1e0499cae5f3aeb628c267616d4b682"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:full-border"
