@@ -74,9 +74,9 @@ rules = [
 	{ mime = "application/xhtml+xml", use = ["edit", "browser", "reveal"] },
 	# Text
 	{ mime = "text/*", use = ["edit", "reveal"] },
-	# Books: kittypdf is the default PDF reader (falls through to Sioyek); r opens the full chooser.
+	# Books: kittypdf is the default PDF/EPUB reader (falls through to Sioyek); r opens the full chooser.
 	{ mime = "application/pdf", use = ["pdf-terminal", "pdf-study", "pdf-native", "reveal"] },
-	{ mime = "application/epub+zip", use = ["open", "reveal"] },
+	{ mime = "application/epub+zip", use = ["pdf-terminal", "open", "reveal"] },
 	# Image
 	{ mime = "image/*", use = ["open", "reveal"] },
 	# Media
