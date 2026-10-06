@@ -2,10 +2,10 @@ packages:
   - .
 
 allowBuilds:
-  "@google/genai": false
   esbuild: false
   koffi: false
   protobufjs: false
+  '@google/genai': false
 autoInstallPeers: false
 
 # patchedDependencies below is pinned to an exact version. Without this, any
@@ -20,8 +20,34 @@ minimumReleaseAgeExclude:
   - "@tr1v3r/dsh-ltm@0.2.0"
   - "@deepseek-harness-tui/dsh-tui@0.10.2"
   - "@deepseek-harness-tui/dsh-tui@0.11.2"
+  - '@deepseek-harness-tui/dsh-tui@0.13.0'
 
 nodeLinker: hoisted
 
 patchedDependencies:
-  "@deepseek-harness-tui/dsh-tui@0.11.2": patches/@deepseek-harness-tui__dsh-tui@0.11.2.patch
+  "@deepseek-harness-tui/dsh-tui@0.13.0": patches/@deepseek-harness-tui__dsh-tui@0.13.0.patch
+
+
+ignoredOptionalDependencies:
+  - '@img/sharp-darwin-x64'
+  - '@img/sharp-freebsd-wasm32'
+  - '@img/sharp-linux-arm'
+  - '@img/sharp-linux-arm64'
+  - '@img/sharp-linux-ppc64'
+  - '@img/sharp-linux-riscv64'
+  - '@img/sharp-linux-s390x'
+  - '@img/sharp-linux-x64'
+  - '@img/sharp-linuxmusl-arm64'
+  - '@img/sharp-linuxmusl-x64'
+  - '@img/sharp-win32-arm64'
+  - '@img/sharp-win32-ia32'
+  - '@img/sharp-win32-x64'
+  - '@img/sharp-libvips-darwin-x64'
+  - '@img/sharp-libvips-linux-arm'
+  - '@img/sharp-libvips-linux-arm64'
+  - '@img/sharp-libvips-linux-ppc64'
+  - '@img/sharp-libvips-linux-riscv64'
+  - '@img/sharp-libvips-linux-s390x'
+  - '@img/sharp-libvips-linux-x64'
+  - '@img/sharp-libvips-linuxmusl-arm64'
+  - '@img/sharp-libvips-linuxmusl-x64'
