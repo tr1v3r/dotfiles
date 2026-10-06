@@ -175,6 +175,12 @@ run = 'piper -- sh "$HOME/.config/yazi/preview-tokyo-night.sh" text "$1" "$w"'
 mime = "application/{json,ndjson}"
 run = 'piper -- sh "$HOME/.config/yazi/preview-tokyo-night.sh" text "$1" "$w"'
 
+# EPUB：内建没有 epub 预览器，mime 会一路落到 file 预览器（只打一行 "EPUB document"）。
+# 这里用 PyMuPDF（kittypdf 已装的引擎）把第 1 页——通常就是封面——渲成图再交给 image 管线。
+[[plugin.prepend_previewers]]
+mime = "application/epub+zip"
+run = "epub-preview"
+
 [input]
 cursor_blink = false
 
