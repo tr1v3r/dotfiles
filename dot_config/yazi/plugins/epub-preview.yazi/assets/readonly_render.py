@@ -2,9 +2,9 @@
 """Render page 1 of an EPUB to a PNG for Yazi's preview pane.
 
 Page 1 of an EPUB is almost always the cover, so this doubles as a thumbnail.
-MuPDF's reflowable-HTML engine lays EPUB content out into fixed pages -- the same
-engine kittypdf reads with -- so no separate EPUB/OPF parsing is needed and every
-flavour (EPUB 2, EPUB 3, cover declared via metadata or not) is handled.
+MuPDF's reflowable-HTML engine lays EPUB content out into fixed pages, so no
+separate EPUB/OPF parsing is needed and every flavour (EPUB 2, EPUB 3, cover
+declared via metadata or not) is handled.
 
 Usage: render.py <book.epub> <out.png> <max-pixels>
 """

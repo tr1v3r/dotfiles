@@ -33,6 +33,11 @@ use = "tr1v3r/dsh-tui"
 rev = "8ab3bae"
 hash = "b54ecca9b06fc9eaaf928f8d30fcc309"
 
+[[plugin.deps]]
+use = "tr1v3r/epub-preview"
+rev = "9d134b6"
+hash = "586c5c8c13a6cb89cd66713f65ec7c31"
+
 [[flavor.deps]]
 use = "yazi-rs/flavors:catppuccin-mocha"
 rev = "0f9204b"
