@@ -29,9 +29,9 @@ rev = "c591a36"
 hash = "f281261ff04ad7ec867c3f802a50835f"
 
 [[plugin.deps]]
-use = "tr1v3r/dsh-tui"
-rev = "8ab3bae"
-hash = "b54ecca9b06fc9eaaf928f8d30fcc309"
+use = "tr1v3r/agent-tui"
+rev = "8910d14"
+hash = "b002f5bfdbdb3d6dffcd9c4fbdc830fb"
 
 [[plugin.deps]]
 use = "tr1v3r/epub-preview"
