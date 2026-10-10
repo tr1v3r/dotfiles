@@ -47,11 +47,14 @@ gaps.outer.top = 8
 gaps.outer.right = 8
 
 [mode.main.binding]
-# Focus and move: n/e/u/i = left/down/up/right.
-alt-n = 'focus left'
-alt-e = 'focus down'
-alt-u = 'focus up'
-alt-i = 'focus right'
+# Focus and move: n/e/u/i = left/down/up/right. Focus crosses into the
+# adjacent monitor at the workspace edge (--boundaries all-monitors-outer-frame);
+# same-screen traversal is unchanged, stops at the outer frame. Native-fullscreen
+# windows stay unreachable — use Ctrl+<arrow> or Cmd-Tab for those.
+alt-n = 'focus left --boundaries all-monitors-outer-frame'
+alt-e = 'focus down --boundaries all-monitors-outer-frame'
+alt-u = 'focus up --boundaries all-monitors-outer-frame'
+alt-i = 'focus right --boundaries all-monitors-outer-frame'
 alt-shift-n = 'move left'
 alt-shift-e = 'move down'
 alt-shift-u = 'move up'
