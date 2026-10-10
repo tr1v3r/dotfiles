@@ -16,42 +16,14 @@ llm-deepseek:
 llm-pi-ai:
   providers:
     zai-coding-cn:
+      # 2026-09-23 精简：pi-ai 0.87.1 目录已原生自带 glm-5.3 系（1M ctx、131072
+      # maxTokens、low/high/max 三档、supportsReasoningEffort=true，另含
+      # supportsStrictMode / zaiToolStream 两个旧手写条目没有的 compat 修正），
+      # 故 zai 段整段删除 models + 路由级 compat，只留 apiKeyEnv：不声明即用目录，
+      # 比"纯 id 列表"更全（附赠 glm-5.3-highspeed / glm-4.6v），boot 零告警。
+      # ⚠️ 若 picker 仍显示旧 2 个模型，先查有没有 DSH 进程在按内存旧文档回写整份
+      # 文件（2026-09-23 19:01 实测把 agent-default-model 顶回旧值），再改 models。
       apiKeyEnv: ZAI_CODING_CN_API_KEY
-      # GLM-5.3 尚未进入本机捆绑目录（pi-ai 0.82.1），故手动声明模型列表。
-      # models 是整体替换：前六个照抄内置目录以保留其元数据，最后追加 glm-5.3。
-      models:
-        - id: glm-5.3
-          contextWindow: 1000000
-          maxTokens: 131072
-          # 官方（pi-ai 0.84.3 目录 + bigmodel 文档）：仅 low/high/max 三档思考，
-          # 0.84.3 起 supportsReasoningEffort 为 true，覆盖路由级 false（glm-4.x 才不支持 effort）。
-          reasoningEfforts:
-            low: low
-            high: high
-            max: max
-          compat:
-            supportsReasoningEffort: true
-        - id: glm-5.3-flash
-          # 官方文档：1M 上下文、输出上限同 glm-5.3（128K）；GLM-5 系首个原生多模态
-          # 模型；thinking.type 仅支持 enabled，reasoning_effort 三档同 glm-5.3。
-          # maxTokens 必须显式声明，否则落 harness 兜底 32768，长输出中途截断。
-          contextWindow: 1000000
-          maxTokens: 131072
-          input:
-            - text
-            - image
-          reasoningEfforts:
-            low: low
-            high: high
-            max: max
-          compat:
-            supportsReasoningEffort: true
-      compat:
-        supportsStore: false
-        supportsDeveloperRole: false
-        supportsReasoningEffort: false
-        maxTokensField: max_tokens
-        thinkingFormat: zai
     # traex_bridge：本机 Trae→OpenAI 网关（code.byted.org/hepengcheng/traex_bridge），
     # 复用 ~/.trae/cli/auth.json 的 Trae 授权，无需单独登录。容器监听 127.0.0.1:8317，
     # 说 openai-responses 协议（POST {baseURL}/responses，实测 SSE 流式 / developer 角色 /
@@ -157,3 +129,6 @@ ui-theme:
   preference: system
 skin-custom-theme:
   applied: false
+locale:
+  # 2026-09-23 从 live 搬运的运行时持久化状态（GUI 语言偏好）
+  preference: zh

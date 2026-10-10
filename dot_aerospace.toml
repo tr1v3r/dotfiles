@@ -1,10 +1,12 @@
 # AeroSpace: SIP-free i3-like tiling for macOS.
-# This profile intentionally does not start at login. Select it with:
-#   ~/.config/wm/use aerospace
+# Boot default since 2026-10-10 (winner of the yabai comparison): the
+# start-at-login below registers AeroSpace's own login item. Before switching
+# back to yabai (`~/.config/wm/use yabai`), flip it to false or both
+# backends launch after the next reboot.
 # Colemak navigation: n/e/u/i = left/down/up/right.
 
 config-version = 2
-start-at-login = false
+start-at-login = true
 auto-reload-config = true
 
 # SketchyBar is optional; this follows AeroSpace's official integration.
@@ -27,27 +29,32 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 automatically-unhide-macos-hidden-apps = true
 focus-follows-mouse.enabled = false
 
-# Let AeroSpace translate logical bindings for the active Colemak layout.
-key-mapping.preset = 'colemak'
+# Colemak is remapped in by Karabiner (WeType has no Colemak input source),
+# so macOS stays on ABC and AeroSpace binds against post-remap ANSI codes:
+# the Colemak-n key emits kVK_ANSI_N. preset must be qwerty — 'colemak'
+# resolves alt-n/e/u/i onto kVK_ANSI_J/K/I/L, which never fire.
+key-mapping.preset = 'qwerty'
 
-# Catppuccin-friendly breathing room.
-# outer.top: AeroSpace does not account for the macOS menu bar, so reserve it
-# manually: 24 (menu bar) + 8 (gap) = 32. This is the default while SketchyBar
-# is off (no ~/.config/wm/bar.enable); when the bar is enabled, use 64 (bar
-# bottom y=56 + gap 8) here and update yabairc alongside.
+# Catppuccin breathing room, uniform on all sides — the menu bar is avoided
+# automatically, no manual 24px reservation needed (2026-10-10 verified
+# empirically after the SketchyBar reservation was dropped). If SketchyBar
+# comes back (bar spans y 24..56), raise outer.top to clear it first.
 gaps.inner.horizontal = 8
 gaps.inner.vertical = 8
 gaps.outer.left = 8
 gaps.outer.bottom = 8
-gaps.outer.top = 32
+gaps.outer.top = 8
 gaps.outer.right = 8
 
 [mode.main.binding]
-# Focus and move: n/e/u/i = left/down/up/right.
-alt-n = 'focus left'
-alt-e = 'focus down'
-alt-u = 'focus up'
-alt-i = 'focus right'
+# Focus and move: n/e/u/i = left/down/up/right. Focus crosses into the
+# adjacent monitor at the workspace edge (--boundaries all-monitors-outer-frame);
+# same-screen traversal is unchanged, stops at the outer frame. Native-fullscreen
+# windows stay unreachable — use Ctrl+<arrow> or Cmd-Tab for those.
+alt-n = 'focus left --boundaries all-monitors-outer-frame'
+alt-e = 'focus down --boundaries all-monitors-outer-frame'
+alt-u = 'focus up --boundaries all-monitors-outer-frame'
+alt-i = 'focus right --boundaries all-monitors-outer-frame'
 alt-shift-n = 'move left'
 alt-shift-e = 'move down'
 alt-shift-u = 'move up'

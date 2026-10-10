@@ -13,3 +13,6 @@
 # source: it churns on every message and carries local paths and session
 # ids, so keep it out of every repo at once rather than per-repo.
 **/.agent-teams/
+
+# archify skill 生成目录
+.archify/

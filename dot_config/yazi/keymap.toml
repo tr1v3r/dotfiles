@@ -85,7 +85,7 @@ keymap = [
 
 	# Shell
 	{ on = "<C-g>", run = ["shell --confirm --block lazygit", "plugin starship"], desc = "Lazygit" },
-	{ on = "<C-t>", run = ["plugin dsh-tui", "plugin starship"], desc = "Launch DSH TUI with selected files" },
+	{ on = "<C-t>", run = ["plugin agent-tui", "plugin starship"], desc = "Launch terminal agent with selected files" },
 	{ on = ";", run = "shell --interactive", desc = "Run a shell command" },
 	{ on = ":", run = ["shell --block --interactive", "plugin starship"], desc = "Run a shell command (block until finishes)" },
 
@@ -93,8 +93,8 @@ keymap = [
 	{ on = ["z", "h"], run = "hidden toggle", desc = "Toggle the visibility of hidden files" },
 
 	# Open
-	{ on = "r", run = "open --interactive", desc = "Open selected files interactively" },
-	{ on = ["z", "p"], run = "shell --block -- kittypdf %h", desc = "Read PDF in kitty" },
+	{ on = "O", run = "open --interactive", desc = "Open selected files interactively" },
+	{ on = ["z", "p"], run = "shell --block -- kittypdf %h", desc = "Read PDF/EPUB in kitty" },
 
 	# Create
 	{ on = "T", run = "create", desc = "Create a file (ends with / for directories)" },
