@@ -76,3 +76,9 @@ yabai --restart-service
 `bar.enable` is host-local state like `active`, not part of the repository.
 AeroSpace's `gaps.outer.top` is static — `~/.aerospace.toml` documents the
 value to use with and without the bar.
+
+## Known AeroSpace limitations
+
+See [Hidden workspace windows leaking onto a neighboring display](aerospace-hidden-window-leak.md)
+for an anonymized reproduction, display-arrangement workaround, and the
+limits of the diagnosis.
