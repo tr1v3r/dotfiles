@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.1.5-rc.1**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.2.0-rc.2**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -51,7 +51,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.10.0）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.14.0）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -130,14 +130,17 @@ settings.yaml，否则 TUI 冲突复发。
 
 ## 模型目录（pi-ai）
 
-- pi-ai（`@earendil-works/pi-ai`）**0.82.1**：全局 dsh 安装与 TUI profile 各有一份。
+- pi-ai（`@earendil-works/pi-ai`）**0.87.1**：2026-10-12 实测只有**全局 dsh 安装树的
+  一份**（`…/lib/node_modules/@deepseek-ai/dsh/node_modules/@earendil-works/pi-ai`），
+  TUI profile 的 node_modules 里已无任何副本（沿 node 解析向上命中全局那份）。
+  版本由 `scripts/refresh-pi-ai.sh` 换装决定，见下。
 - 内置 catalog 提供方列表可用 `node -e` 读 `dist/providers/all.js` 的
   `getBuiltinProviders()` / `getBuiltinModels('<route>')` 查看。
 - `zai-coding-cn` 是 catalog 路由（`https://open.bigmodel.cn/api/coding/paas/v4`，
-  openai-completions，thinkingFormat zai），0.82.1 目录只到 **glm-5v-turbo**；
-  glm-5.3 / glm-5.3-flash 在 settings.yaml 手工声明（1M context、maxTokens 131072
-  必须显式声明否则落兜底 32768、reasoningEfforts low/high/max、
-  `compat.supportsReasoningEffort: true` 覆盖路由级 false）。
+  openai-completions，thinkingFormat zai）。⚠️ 0.82.1 的目录只到 **glm-5v-turbo**，
+  那时 glm-5.3 / glm-5.3-flash 只能手写进 settings.yaml（maxTokens 必须显式写
+  131072，否则落兜底 32768）；0.87.1 起目录自带 glm-5.3 系（含 low/high/max 与
+  compat 修正），本机 settings 的 zai 段因此只剩 apiKeyEnv（细节见下「pi-ai 升级后」）。
 - 模型选择器/`/provider` 向导的数据来自 `ctx.llm` 注册表 + settings seam，不联网。
 
 ## 调试技巧
@@ -247,16 +250,19 @@ settings.yaml，否则 TUI 冲突复发。
     ⚠️ 该 update 会重跑 install，事后复查补丁三件事（标记 / vendor 1.1M / node --check）。
   - **新增 peer 兼容门禁**：bundles 里 peer 范围不含当前 engine 的插件会被
     `skipping profile bundle "<name>": Plugin … is incompatible with dsh 0.2.0-rc.1`
-    **整包静默跳过**（不崩，功能消失）。web profile 现状：dshmarket@1.58.0（可升 1.66.5，
-    其 peer 已含 ^0.2.0-rc.1）、@nanmicoder/dsh-agent-teams@0.1.20（0.1.22 只认
-    0.1.5-rc.3 / 0.1.7-rc.2 / 0.2.0-rc.2，仍不含 0.2.0-rc.1）、dsh-builtin-browser@0.1.22
-    与 dsh-fetch-file@0.1.2（无新版，需 `dsh plugin allow-version` 显式豁免或弃用）。
-  - ⚠️ **别升 engine 到 0.2.0-rc.2**：dsh-tui 0.11.2 的 peer 名单止于 **0.2.0-rc.1**，
-    升 rc.2 会把 TUI bundle 自己门禁掉。（2026-09-29 决策：**停在 0.2.0-rc.1 等 TUI 适配**
-    ——npm 上 dsh-tui 最新仍 0.11.2、无版本支持 rc.2；rc.2 的收益主要是 web 侧
-    `@nanmicoder/dsh-agent-teams@0.1.22` 可解禁，不急。将来 TUI 新版名单含 rc.2 时再走
-    完整链路：`npm i -g` → `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 → 真 boot 三 profile；
-    不愿等也可 `dsh plugin allow-version` 精确豁免硬上，但工具明说 risky。）
+    **整包静默跳过**（不崩，功能消失）。（2026-10-12 复核）web profile 这批包已基本
+    跟上：dshmarket@1.66.8、@nanmicoder/dsh-agent-teams@0.1.22（peer 含 0.2.0-rc.2）、
+    dsh-builtin-browser@0.4.2、@tr1v3r/dsh-proxy@0.2.5、dsh-context@0.63.0、
+    dsh-ltm@0.3.0、dsh-quote-followup@0.2.10；仍无适配版的只剩 dsh-fetch-file@0.1.2
+    （需 `dsh plugin allow-version` 显式豁免或弃用）。是否真被门禁，以真 boot 日志里的
+    `skipping profile bundle` 行为准。
+  - ✅ **engine 已停在 0.2.0-rc.2（2026-10-12 复核）**：原先的「别升 rc.2」只对
+    TUI 0.11.2 成立——0.14.0 的 peer 名单每条 `@deepseek-ai/dsh-*` 末尾都追加了
+    `0.2.0-rc.2`，所以 rc.2 不再门禁 TUI。现状：`dsh --version` = 0.2.0-rc.2、
+    TUI 0.14.0 真实 boot 出横幅、全局 pi-ai 实测 0.87.1（换装态未被 npm i -g 打回
+    0.85.x）。历史（2026-09-29 决策）：0.11.2 名单止于 rc.1，当时停在 rc.1 等适配；
+    完整链路仍是 `npm i -g` → 复查 `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 →
+    真 boot 三 profile。
   - ⚠️ **client 侧 `settingsScope` 服务已改名为 `configForms`**（2026-09-29 实测）：
     官方 `dsh-client-ui-settings` 现在 provide `ctx.configForms`（取用面是
     `ctx.configForms.get(entryId)`）；旧的 `settingsScope` 服务在 0.2.0-rc.1 已不存在
@@ -281,6 +287,30 @@ settings.yaml，否则 TUI 冲突复发。
   - ✅ **0.11.2 基线已重做**（2026-09-29）：补丁与键改名为 `...@0.11.2.patch`，5 个文件
     原 hunks 只有 1 处上下文漂移（`plugin.js` schema 尾部 `}));` → `}), () => {`，
     其余靠 `patch --fuzz` 原样套上）；重生成后再验证三件事全过。
+  - ✅ **0.13.0 / 0.14.0 基线已重做**（2026-10-06 / 2026-10-12，提交 dd8037c / 55bbf48；
+    惯例是 bump 与补丁放**同一个 commit**）：这两次 `--fuzz` 都套不干净，必须手工补
+    `.rej`。0.14.0 的上游漂移点：caret 被拆成独立片类型（`caretCell` 绘制、pieces 多
+    一个 `caret` 字段，两处 `pieces.map` 渲染链都变了）、卡片标题从 JSX 挪进局部
+    `title` 常量、keymap.js 现在只 import `actionMatches`（补丁的 `vimCanonicalKey`
+    并进同一行）。PromptInput 22 个 hunk 里 6 个 + CommandSuggestions 2 个进 `.rej`；
+    逐条改写后 accent 分支排在 caret/chip 之后（accent 只升级 plain 格）、`title` 成为
+    真 prop 喂 `heading`、Esc 的 skill 浮层分支补回。
+  - **移植手法（2026-10-12 定稿）**：① 把 live 已装的包整份拷两份到临时目录作
+    orig/mod；② 在 mod 里 `patch -p1 --fuzz=3 < 旧补丁`（fuzz 只容忍上下文漂移，改动行
+    不匹配就落 `.rej`）；③ 逐条读 `.rej` 对照上游新代码改写，**别硬套**；④ 生成补丁：
+    两棵树改名成 `a/`、`b/` 后 `git diff --no-index --src-prefix= --dst-prefix= a b`
+    —— 直接得到 `a/lib/... b/lib/...`，不必事后修前缀；⑤ 白拷贝上 `patch -p1 --dry-run`
+    验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 新增
+    `minimumReleaseAgeExclude` 行。
+  - ⚠️ **新补丁文件必须先 `chezmoi apply`**（2026-10-12 踩坑）：pnpm 解析补丁路径是
+    **相对 profile 目录**（`~/.config/dsh/profiles/dsh-tui/patches/`），而该 live 目录归
+    chezmoi 管（文件是 symlink），不先
+    `chezmoi apply --exclude=scripts ~/.config/dsh/profiles/dsh-tui/patches` 就直接
+    `ENOENT … patches/@…@<新版>.patch`。随后在 **live profile** 跑
+    `dsh plugin --profile dsh-tui install --no-frozen-lockfile`（`~/.config` 在 DSH
+    workspace 之外，沙箱下要 danger-full-access）。验收：三件事 + 真 boot（`timeout 15
+    script -q /dev/null dsh --profile dsh-tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
+    补丁的 sha256；已在跑的 TUI 加载的是旧模块，要重启才生效。
   - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
     `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
     **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
@@ -296,9 +326,10 @@ settings.yaml，否则 TUI 冲突复发。
     **0.11.2 的 `ensureProfileAllowBuilds` 已按 present 查重**，之后不会再犯。
 - ⚠️ **绝不对这个包跑 `pnpm patch-commit`**：tarball 里的 vendored 嵌套 node_modules
   （`vendor/dsh-std/**`，运行时 `plugin-spec/registry.js` 真的加载）在重新打包时会被
-  整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：
-  `pnpm patch` 拿到编辑目录 → 手工 `git diff --no-index` 生成单文件 diff（修掉
-  `a/a/` 双层前缀）→ 放进 `patches/` + 挂 `patchedDependencies`。
+  整体丢掉（补丁记为 deleted、装出来 `vendor/` 0B，TUI 变砖）。正确做法：按上面
+  「移植手法」用 `git diff --no-index` 手工生成单文件 diff（两棵树命名成 `a/`、`b/`
+  即可，无需事后修前缀）→ 放进 `patches/` + 挂 `patchedDependencies`（`pnpm patch`
+  只用来拿可编辑目录）。
 - ⚠️ **settings.yaml 目标是 symlink**（settings seam 会运行时改写它，
   `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置可直接改
   `~/.config/dsh/settings.yaml`（热加载立即生效），变更会同步落到 chezmoi source；
