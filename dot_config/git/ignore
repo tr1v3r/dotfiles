@@ -16,3 +16,9 @@
 
 # archify skill 生成目录
 .archify/
+
+# Neovim internal-log fallback: when nvim cannot open its default log under
+# ~/.local/state/nvim/ (e.g. headless nvim spawned inside the dsh file
+# sandbox), it falls back to writing nvim.log in the cwd. Harmless runtime
+# leftovers, never meant to be committed.
+nvim.log
