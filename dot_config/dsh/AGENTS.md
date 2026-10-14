@@ -51,7 +51,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.14.0）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.15.0）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -295,6 +295,13 @@ settings.yaml，否则 TUI 冲突复发。
     并进同一行）。PromptInput 22 个 hunk 里 6 个 + CommandSuggestions 2 个进 `.rej`；
     逐条改写后 accent 分支排在 caret/chip 之后（accent 只升级 plain 格）、`title` 成为
     真 prop 喂 `heading`、Esc 的 skill 浮层分支补回。
+  - ✅ **0.15.0 基线已重做**（2026-10-14，提交 ccc8238）：31 个 hunk 只有 1 个落
+    `.rej`（PromptInput 末尾 piece 构造）。上游漂移点：blank-caret piece 的
+    inverse/caret 加了 `!nativeCursor &&` 守卫；改写时保留守卫、补上两个 accent
+    字段（while 循环里 `accent: kind === ACCENT` 与空 caret piece 的
+    `accent: false`，同一 rej hunk 连带丢了前者）。白拷贝零 `.rej` 且逐字节一致；
+    验收全过（lockfile `patch_hash` = 补丁 sha256 `d17c1b06…`、vendor 1.1M、
+    `node --check`×5、真 boot 出 v0.15.0 横幅）。
   - **移植手法（2026-10-12 定稿）**：① 把 live 已装的包整份拷两份到临时目录作
     orig/mod；② 在 mod 里 `patch -p1 --fuzz=3 < 旧补丁`（fuzz 只容忍上下文漂移，改动行
     不匹配就落 `.rej`）；③ 逐条读 `.rej` 对照上游新代码改写，**别硬套**；④ 生成补丁：
