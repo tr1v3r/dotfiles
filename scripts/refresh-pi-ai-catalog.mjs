@@ -33,6 +33,11 @@ for (const route of routes) {
       assert.equal(model.api, api);
       assert(model.id && model.contextWindow > 0 && model.maxTokens > 0);
       const { type, ...chat } = model;
+      // Local Codex policy: do not offer off or let an omitted effort send none.
+      // Catalog null means unsupported (unlike profile reasoningEfforts.off).
+      if (route === 'openai-codex' && chat.reasoning) {
+        chat.thinkingLevelMap = { ...chat.thinkingLevelMap, off: null };
+      }
       groups[api][model.id] = chat;
     }
     assert(Object.keys(groups[api]).length, `empty chat catalog: ${route}/${api}`);
