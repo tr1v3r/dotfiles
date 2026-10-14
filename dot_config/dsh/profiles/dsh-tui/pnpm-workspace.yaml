@@ -20,8 +20,8 @@ minimumReleaseAgeExclude:
   - "@tr1v3r/dsh-ltm@0.2.0"
   - "@deepseek-harness-tui/dsh-tui@0.10.2"
   - "@deepseek-harness-tui/dsh-tui@0.11.2"
+  - '@deepseek-harness-tui/dsh-tui@0.15.0'
   - '@deepseek-harness-tui/dsh-tui@0.14.0'
-  - '@deepseek-harness-tui/dsh-tui@0.13.0'
 
 nodeLinker: hoisted
 
@@ -52,3 +52,4 @@ ignoredOptionalDependencies:
   - '@img/sharp-libvips-linux-x64'
   - '@img/sharp-libvips-linuxmusl-arm64'
   - '@img/sharp-libvips-linuxmusl-x64'
+
