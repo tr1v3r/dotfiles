@@ -145,6 +145,40 @@
               high: high
               xhigh: xhigh
               max: max
+          - id: "GPT-6.1-Sol"
+            contextWindow: 475000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-6.1-Sol[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "openrouter-4o"
+            contextWindow: 200000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: "openrouter-4o[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
 - id: ui-settings-general
   name: "@deepseek-ai/dsh-client-ui-settings-general"
   config:

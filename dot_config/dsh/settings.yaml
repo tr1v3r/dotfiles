@@ -28,7 +28,7 @@ llm-pi-ai:
     # 复用 ~/.trae/cli/auth.json 的 Trae 授权，无需单独登录。容器监听 127.0.0.1:8317，
     # 说 openai-responses 协议（POST {baseURL}/responses，实测 SSE 流式 / developer 角色 /
     # reasoning.effort / max_output_tokens 均通）。pi-ai 目录没有这些模型，故整段手写声明。
-    # 仅暴露用户指定的 6 个模型，不多带。maxTokens 必须显式声明，否则落 harness 兜底 32768
+    # 仅暴露用户指定的 10 个模型，不多带。maxTokens 必须显式声明，否则落 harness 兜底 32768
     # 长输出中途截断；上游不回显输出上限，65536 为实测可接受的稳妥每请求默认输出上限。
     traex:
       apiKeyEnv: TRAEX_BRIDGE_API_KEY
@@ -90,6 +90,40 @@ llm-pi-ai:
             max: max
         # openrouter-3o[1m]：openrouter-3o 的 1M 长上下文变体（ctx 1000K），思考五档同上。
         - id: "openrouter-3o[1m]"
+          contextWindow: 1000000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        - id: "GPT-6.1-Sol"
+          contextWindow: 475000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        - id: "GPT-6.1-Sol[1m]"
+          contextWindow: 1000000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+        - id: "openrouter-4o"
+          contextWindow: 200000
+          maxTokens: 65536
+          reasoningEfforts:
+            low: low
+            medium: medium
+            high: high
+            xhigh: xhigh
+            max: max
+        - id: "openrouter-4o[1m]"
           contextWindow: 1000000
           maxTokens: 65536
           reasoningEfforts:
