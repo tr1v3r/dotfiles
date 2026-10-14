@@ -35,11 +35,15 @@ open = [
 	{ run = "open %s", desc = "Open", for = "macos" },
 	{ run = 'start "" %s1', orphan = true, desc = "Open", for = "windows" },
 ]
+browser = [
+	{ run = "open -a Firefox %s", orphan = true, desc = "Firefox · browser", for = "macos" },
+	{ run = "firefox %s", orphan = true, desc = "Firefox · browser", for = "linux" },
+]
 pdf-study = [
 	{ run = "sioyek %s", orphan = true, desc = "Sioyek · study", for = "macos" },
 ]
 pdf-terminal = [
-	{ run = "kittypdf %s1", block = true, desc = "kittypdf · terminal", for = "unix" },
+	{ run = "kittypdf %s1", block = true, desc = "kittypdf · terminal (default)", for = "unix" },
 ]
 pdf-native = [
 	{ run = "open -a Preview %s", orphan = true, desc = "Preview · edit/print", for = "macos" },
@@ -64,11 +68,15 @@ play = [
 rules = [
 	# Folder
 	{ mime = "inode/directory", use = ["edit", "open", "reveal"] },
+	# HTML: keep editing as default; offer a browser in the interactive chooser.
+	{ url = "*.{html,htm,HTML,HTM}", use = ["edit", "browser", "reveal"] },
+	{ mime = "text/html", use = ["edit", "browser", "reveal"] },
+	{ mime = "application/xhtml+xml", use = ["edit", "browser", "reveal"] },
 	# Text
 	{ mime = "text/*", use = ["edit", "reveal"] },
-	# Books: Sioyek is the default PDF reader; r opens the full chooser.
-	{ mime = "application/pdf", use = ["pdf-study", "pdf-terminal", "pdf-native", "reveal"] },
-	{ mime = "application/epub+zip", use = ["open", "reveal"] },
+	# Books: kittypdf is the default PDF/EPUB reader (falls through to Sioyek); r opens the full chooser.
+	{ mime = "application/pdf", use = ["pdf-terminal", "pdf-study", "pdf-native", "reveal"] },
+	{ mime = "application/epub+zip", use = ["pdf-terminal", "open", "reveal"] },
 	# Image
 	{ mime = "image/*", use = ["open", "reveal"] },
 	# Media
@@ -166,6 +174,12 @@ run = 'piper -- sh "$HOME/.config/yazi/preview-tokyo-night.sh" text "$1" "$w"'
 [[plugin.prepend_previewers]]
 mime = "application/{json,ndjson}"
 run = 'piper -- sh "$HOME/.config/yazi/preview-tokyo-night.sh" text "$1" "$w"'
+
+# EPUB：内建没有 epub 预览器，mime 会一路落到 file 预览器（只打一行 "EPUB document"）。
+# 这里用 PyMuPDF（kittypdf 已装的引擎）把第 1 页——通常就是封面——渲成图再交给 image 管线。
+[[plugin.prepend_previewers]]
+mime = "application/epub+zip"
+run = "epub-preview"
 
 [input]
 cursor_blink = false

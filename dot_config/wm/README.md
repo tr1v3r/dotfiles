@@ -42,10 +42,12 @@ Both profiles use equivalent Colemak bindings for a fair comparison:
 `n/e/u/i` means left/down/up/right, `Alt+1..9` changes workspace, and
 `Alt+Shift+1..9` moves the window and follows it.
 
-While comparing, AeroSpace keeps `start-at-login = false`. Selecting yabai
-installs/enables its launchd services; selecting AeroSpace or `off` stops and
-uninstalls the yabai/skhd services so they cannot both start at the next login.
-After choosing a winner, its login behavior can be made permanent.
+AeroSpace won the comparison and is the boot default: `start-at-login = true`
+in `~/.aerospace.toml` makes AeroSpace register its own login item. Selecting
+yabai installs/enables its launchd services; selecting AeroSpace or `off`
+stops and uninstalls the yabai/skhd services so they cannot both start at the
+next login. To switch back to yabai, set `start-at-login = false` first,
+otherwise both backends launch after the next reboot.
 
 ## SketchyBar is opt-in
 
@@ -74,3 +76,9 @@ yabai --restart-service
 `bar.enable` is host-local state like `active`, not part of the repository.
 AeroSpace's `gaps.outer.top` is static — `~/.aerospace.toml` documents the
 value to use with and without the bar.
+
+## Known AeroSpace limitations
+
+See [Hidden workspace windows leaking onto a neighboring display](aerospace-hidden-window-leak.md)
+for an anonymized reproduction, display-arrangement workaround, and the
+limits of the diagnosis.

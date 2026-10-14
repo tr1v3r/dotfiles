@@ -1,6 +1,90 @@
 # Your patch layer for this dsh profile, applied after every bundle layer:
 # a top-level YAML array of loader patch entries (id-targeted config
 # overrides, disables, and insert lists; `!!js` expressions allowed).
+#
+# 2026-09-28 LLM 路由 entry 层兜底：桌面版 0.1.7-rc.2 的 settings 导入器会在
+# boot/config-reload 时无条件把 $DSH_HOME/settings.yaml 改名 .imported 吸收掉，
+# legacy 分节随时消失，故 zai/traex 提供方与 deepseek 上限常驻本 patch 层。
+- id: llm-pi-ai
+  config:
+    providers:
+      # zai（GLM）：pi-ai 0.87.1 目录原生含 glm-5.3 系，只写 apiKeyEnv，不写 models。
+      zai-coding-cn:
+        apiKeyEnv: ZAI_CODING_CN_API_KEY
+      # traex_bridge：本机 Trae→OpenAI 网关（127.0.0.1:8317，openai-responses），
+      # pi-ai 目录没有这些模型，整段手写；maxTokens 显式声明防 32768 截断。
+      traex:
+        apiKeyEnv: TRAEX_BRIDGE_API_KEY
+        displayName: TraeX Bridge
+        api: openai-responses
+        baseURL: http://127.0.0.1:8317/v1
+        compat:
+          supportsDeveloperRole: true
+          supportsMaxOutputTokens: true
+        models:
+          - id: GPT-5.6-Sol
+            contextWindow: 272000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-5.6-Sol[1m]"
+            contextWindow: 800000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: GPT-6-Astra
+            contextWindow: 272000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-6-Astra[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: openrouter-3o
+            contextWindow: 200000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: "openrouter-3o[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+
+# deepseek 官方路由只抬输出上限（384K=393216），不写 models。
+- id: llm-deepseek
+  config:
+    maxTokens: 393216
+
+# entry 层默认模型兜底（settings.yaml 被桌面版吃掉时的 floor）。
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
+    reasoningEffort: high
+
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'

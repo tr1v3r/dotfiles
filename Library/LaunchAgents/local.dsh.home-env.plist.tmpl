@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Publish DSH_HOME into the macOS GUI (Aqua) launchd domain at login.
+
+  Why this is needed: a GUI app inherits no shell environment, so DeepSeek
+  Harness Desktop never sees the DSH_HOME exported by ~/.local/zsh/env.zsh and
+  falls back to ~/.dsh. Apps started afterwards from Dock / Finder / Spotlight
+  inherit whatever this agent published.
+
+  Deploy : chezmoi apply, with scripts excluded, for this target
+  Load   : launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.dsh.home-env.plist
+  Verify : launchctl getenv DSH_HOME
+  Remove : launchctl bootout gui/$(id -u)/local.dsh.home-env
+
+  Note: chezmoi renders the absolute home path into ProgramArguments, so the
+  repository never hardcodes the macOS username.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>local.dsh.home-env</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>launchctl setenv DSH_HOME "{{ .chezmoi.homeDir }}/.config/dsh"</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+</dict>
+</plist>
