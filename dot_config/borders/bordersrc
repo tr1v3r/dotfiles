@@ -1,8 +1,11 @@
 #!/bin/bash
+# 焦点描边：细线 + gruvbox 蓝灰，只画焦点窗口。
+# AeroSpace 不自带焦点提示，而 macOS 原生线索（交通灯/标题/阴影）在暗色贴边布局下很弱。
+# 运行时调参：borders width=2.0（已跑实例会被后续调用更新，不必重启服务）。
 options=(
   style=round
-  width=5.0
-  active_color=0xffa9b665
+  width=1.5
+  active_color=0xff7daea3
   inactive_color=0x00000000
 )
 borders "${options[@]}"
