@@ -134,6 +134,15 @@ settings.yaml，否则 TUI 冲突复发。
   一份**（`…/lib/node_modules/@deepseek-ai/dsh/node_modules/@earendil-works/pi-ai`），
   TUI profile 的 node_modules 里已无任何副本（沿 node 解析向上命中全局那份）。
   版本由 `scripts/refresh-pi-ai.sh` 换装决定，见下。
+- **2026-10-14 目录刷新**：运行时仍为 0.87.1；五条常用路由的聊天模型数据取自
+  pi-ai 1.2.0（生成于 2026-10-12）。执行
+  `bash scripts/refresh-pi-ai.sh --catalog-only` 可重做：只回填现有 API 的 chat 模型，
+  将 1.x 的 `chat:<id>` 键转回旧运行时使用的纯 id，排除图片生成与分类模型；不升级
+  SDK 或运行时代码。openai-codex 新增 `gpt-6.1-sol`，anthropic 新增
+  `claude-haiku-5-5` / `claude-sonnet-5-5`；xai / zai 无模型增删。
+  来源版本与路由范围记录在包内 `dist/providers/data/.dsh-catalog-refresh.json`，
+  原始 manifest 的全目录生成时间保持不变。每次有实际变化才换装，并留独立
+  `pi-ai.bak-catalog-*` 完整备份；重启 TUI 后生效。整包换装模式仍默认 0.87.1。
 - 内置 catalog 提供方列表可用 `node -e` 读 `dist/providers/all.js` 的
   `getBuiltinProviders()` / `getBuiltinModels('<route>')` 查看。
 - `zai-coding-cn` 是 catalog 路由（`https://open.bigmodel.cn/api/coding/paas/v4`，

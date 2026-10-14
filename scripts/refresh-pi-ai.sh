@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# refresh-pi-ai.sh — 升级 dsh 后重做 pi-ai 模型目录「物理换装」
+# refresh-pi-ai.sh — 刷新 pi-ai 模型目录，或升级后重做整包「物理换装」
 #
 # 用途一句话：
 #   把全局 dsh 安装树里的 @earendil-works/pi-ai 整目录替换成指定版本（默认
 #   0.87.1），使 TUI / headless / web 各 profile 的模型选择器拿到新版模型目录
 #   （catalog，静态快照，不联网刷新）。
+#   新版 SDK 与当前 DSH 不匹配时，用 --catalog-only 只回填聊天模型数据。
 #
 # ── 为什么需要这个脚本（背景机制）────────────────────────────────────────────
 # 1. dsh TUI 的 openai-codex / anthropic / xai 三条 OAuth 订阅路由由第三方插件
@@ -43,6 +44,8 @@
 # ── 用法 ────────────────────────────────────────────────────────────────────
 #   refresh-pi-ai.sh [version] [-f|--force]
 #     version    目标 pi-ai 版本（默认 0.87.1；上游发新版后可换更新版本号）
+#   refresh-pi-ai.sh --catalog-only [version]
+#     仅刷新常用五条路由的聊天模型数据（默认来源 1.2.0），保留 0.87.x 运行时和 SDK。
 #     -f         当前已是目标版本时仍强制重装
 #     -h         打印本说明
 #   换完**必须重启 TUI / 各 profile 会话**：模型注册表在 boot 时构建，
@@ -68,12 +71,18 @@ fi
 # ── 参数解析 ─────────────────────────────────────────────────────────────────
 TARGET_VERSION="0.87.1"   # 默认换装目标；上游出 0.88+ 后可显式传参跟上
 FORCE=0
+CATALOG_ONLY=0
+EXPLICIT_VERSION=0
 for a in "$@"; do
   case "$a" in
     -f|--force) FORCE=1 ;;
-    *) TARGET_VERSION="$a" ;;
+    --catalog-only) CATALOG_ONLY=1 ;;
+    *) TARGET_VERSION="$a"; EXPLICIT_VERSION=1 ;;
   esac
 done
+if [[ "$CATALOG_ONLY" -eq 1 && "$EXPLICIT_VERSION" -eq 0 ]]; then
+  TARGET_VERSION="1.2.0"
+fi
 
 # ── 定位全局 dsh 树 ──────────────────────────────────────────────────────────
 GLOBAL_ROOT="$(npm root -g)"                       # fnm 的 node 版本目录
@@ -88,12 +97,16 @@ TARGET="$DSH_NM/@earendil-works/pi-ai"
 CURRENT_VERSION="$(node -p "require('$TARGET/package.json').version")"
 
 # 同版本且未强制 → 幂等退出
-if [[ "$CURRENT_VERSION" == "$TARGET_VERSION" && "$FORCE" -eq 0 ]]; then
+if [[ "$CATALOG_ONLY" -eq 0 && "$CURRENT_VERSION" == "$TARGET_VERSION" && "$FORCE" -eq 0 ]]; then
   echo "✓ 当前已是 pi-ai ${CURRENT_VERSION}，无需换装（强制重装请加 -f）"
   exit 0
 fi
 
-echo "→ pi-ai $CURRENT_VERSION → $TARGET_VERSION"
+if [[ "$CATALOG_ONLY" -eq 1 ]]; then
+  echo "→ 刷新模型目录：来源 ${TARGET_VERSION}，保留运行时 ${CURRENT_VERSION}"
+else
+  echo "→ pi-ai $CURRENT_VERSION → $TARGET_VERSION"
+fi
 
 # ── 第 1 步：下载 + 解包 + 预验（全部发生在临时目录，失败不影响线上目录）──────
 # --cache 指到脚本自己的临时目录：不依赖用户默认 ~/.npm（若被 sudo npm 写入
@@ -114,13 +127,29 @@ tar -xzf "$TGZ" -C "$TMP/pkg" --strip-components 1
 PACKED="$(node -p "require('$TMP/pkg/package.json').version")"
 [[ "$PACKED" == "$TARGET_VERSION" ]] || {
   echo "✗ 解包版本 $PACKED 与目标 $TARGET_VERSION 不符" >&2; exit 1; }
+if [[ "$CATALOG_ONLY" -eq 1 ]]; then
+  cp -R "$TARGET" "$TMP/staged"
+  node "$(dirname "$0")/refresh-pi-ai-catalog.mjs" "$TMP/staged" "$TMP/pkg"
+  rm -rf "$TMP/pkg"
+  mv "$TMP/staged" "$TMP/pkg"
+  if diff -qr "$TARGET/dist/providers/data" "$TMP/pkg/dist/providers/data" >/dev/null; then
+    echo "✓ 模型目录已是 pi-ai ${TARGET_VERSION} 的数据，无需换装"
+    exit 0
+  fi
+fi
 node -e "require('$TMP/pkg/dist/providers/all.js')"   # catalog 可加载性预检
 
 # ── 第 2 步：备份并替换（此刻才动线上目录；任何失败立即回滚）────────────────
 BAK="$TARGET.bak-$CURRENT_VERSION"
-rm -rf "$BAK"                       # 只保留最近一版备份
+if [[ "$CATALOG_ONLY" -eq 1 ]]; then
+  BAK="$(mktemp -d "$TARGET.bak-catalog-XXXXXXXX")"
+  rmdir "$BAK"                     # 唯一备份路径，不覆盖已有备份
+else
+  rm -rf "$BAK"                     # 只保留最近一版备份
+fi
 mv "$TARGET" "$BAK"
-if ! mkdir -p "$TARGET" || ! cp -R "$TMP/pkg/." "$TARGET/"; then
+if ! mkdir -p "$TARGET" || ! cp -R "$TMP/pkg/." "$TARGET/" || \
+    ! node -e "require('$TARGET/dist/providers/all.js')"; then
   echo "✗ 替换失败，回滚到 $BAK" >&2
   rm -rf "$TARGET"
   mv "$BAK" "$TARGET"
@@ -132,7 +161,12 @@ NEW_CATALOG_DATE="$(node -p "
   const a = require('$TARGET/dist/providers/all.js');
   new Date(a.getBuiltinModelDataGeneratedAt()).toISOString().slice(0, 10)
 ")"
-echo "✓ 落位完成，新 catalog 生成时间：$NEW_CATALOG_DATE"
+if [[ "$CATALOG_ONLY" -eq 1 ]]; then
+  SOURCE_DATE="$(node -p "require('$TARGET/dist/providers/data/.dsh-catalog-refresh.json').generatedAt")"
+  echo "✓ 落位完成，五条路由的数据来源时间：$SOURCE_DATE"
+else
+  echo "✓ 落位完成，新 catalog 生成时间：$NEW_CATALOG_DATE"
+fi
 
 node -e "
 const load = (d) => require(d + '/dist/providers/all.js');
@@ -151,7 +185,11 @@ for (const r of ['openai-codex', 'anthropic', 'xai', 'openai', 'zai-coding-cn'])
 
 # ── 收尾提示 ─────────────────────────────────────────────────────────────────
 echo
-echo "✓ 换装完成：pi-ai $CURRENT_VERSION → $TARGET_VERSION"
+if [[ "$CATALOG_ONLY" -eq 1 ]]; then
+  echo "✓ 目录刷新完成：数据来源 pi-ai ${TARGET_VERSION}；运行时保持 ${CURRENT_VERSION}"
+else
+  echo "✓ 换装完成：pi-ai $CURRENT_VERSION → $TARGET_VERSION"
+fi
 echo "  · 重启 TUI / 会话后生效（模型注册表在 boot 时构建，热加载不重解析目录）"
 echo "  · 还原：rm -rf '$TARGET' && mv '$BAK' '$TARGET'"
 echo "  · 提醒：npm i -g @deepseek-ai/dsh 会把换装还原成 0.85.x，升级后重跑本脚本"
