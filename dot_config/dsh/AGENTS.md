@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.2.0-rc.2**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.2.1-rc.2**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -51,7 +51,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.15.0）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.16.1）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 

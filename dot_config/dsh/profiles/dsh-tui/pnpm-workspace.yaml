@@ -16,17 +16,17 @@ autoInstallPeers: false
 allowUnusedPatches: true
 
 minimumReleaseAgeExclude:
-  - '@tr1v3r/dsh-ltm@0.3.0'
+  - '@tr1v3r/dsh-ltm@0.3.2 || 0.3.3'
   - "@tr1v3r/dsh-ltm@0.2.0"
   - "@deepseek-harness-tui/dsh-tui@0.10.2"
   - "@deepseek-harness-tui/dsh-tui@0.11.2"
-  - '@deepseek-harness-tui/dsh-tui@0.15.0'
+  - '@deepseek-harness-tui/dsh-tui@0.16.1'
   - '@deepseek-harness-tui/dsh-tui@0.14.0'
 
 nodeLinker: hoisted
 
 patchedDependencies:
-  "@deepseek-harness-tui/dsh-tui@0.15.0": patches/@deepseek-harness-tui__dsh-tui@0.15.0.patch
+  "@deepseek-harness-tui/dsh-tui@0.16.1": patches/@deepseek-harness-tui__dsh-tui@0.16.1.patch
 
 
 ignoredOptionalDependencies:
@@ -53,3 +53,10 @@ ignoredOptionalDependencies:
   - '@img/sharp-libvips-linuxmusl-arm64'
   - '@img/sharp-libvips-linuxmusl-x64'
 
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64'
+  - '@anthropic-ai/claude-agent-sdk-win32-x64'

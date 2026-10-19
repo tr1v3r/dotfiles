@@ -8,7 +8,7 @@
     "@linxin666/dsh-web-all": "0.4.4",
     "@liustack/modsearch": "5.10.6",
     "@nanmicoder/dsh-agent-teams": "0.1.22",
-    "@tr1v3r/dsh-ltm": "0.3.0",
+    "@tr1v3r/dsh-ltm": "0.3.3",
     "@tr1v3r/dsh-proxy": "0.2.5",
     "@tt-a1i/archify-dsh": "^0.1.0",
     "dsh-at-file": "^0.6.3",
