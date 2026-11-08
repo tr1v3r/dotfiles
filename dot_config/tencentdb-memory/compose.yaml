@@ -1,0 +1,52 @@
+name: tencentdb-memory
+
+services:
+  gateway:
+    image: local/tencentdb-memory:a65576e-pathfix
+    build:
+      # Vendored official a65576e recipe with a Hermes installation-path fix.
+      # The upstream recipe still uses floating dependencies.
+      context: .
+      dockerfile: Dockerfile.hermes
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8420:8420"
+    environment:
+      TDAI_GATEWAY_HOST: 0.0.0.0
+      TDAI_GATEWAY_PORT: "8420"
+      TDAI_DATA_DIR: /opt/data/tdai-memory
+      TDAI_GATEWAY_CONFIG: /etc/tdai/gateway.json
+      TDAI_LLM_BASE_URL: https://api.deepseek.com
+      TDAI_LLM_MODEL: deepseek-flash
+      TDAI_LLM_DISABLE_THINKING: deepseek
+      TDAI_LLM_MAX_TOKENS: "4096"
+    # Use the official image, but skip Hermes config generation: Gateway only.
+    command: ["sh", "/etc/tdai/start-gateway.sh"]
+    volumes:
+      - memory-data:/opt/data
+      - ./gateway.json:/etc/tdai/gateway.json:ro
+      - ./start-gateway.sh:/etc/tdai/start-gateway.sh:ro
+    secrets:
+      - deepseek_api_key
+      - gateway_api_key
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8420/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  memory-data:
+    name: tencentdb-memory-data
+
+secrets:
+  deepseek_api_key:
+    file: ${HOME}/.local/share/tencentdb-memory/secrets/deepseek-api-key
+  gateway_api_key:
+    file: ${HOME}/.local/share/tencentdb-memory/secrets/gateway-api-key
