@@ -12,6 +12,23 @@ command -v "$CONTAINER_ENGINE" >/dev/null 2>&1 || {
 	exit 1
 }
 
+# Externals are pre-cloned into containers from this machine's live external
+# clones (mounted read-only), so containers need no GitHub credentials or
+# proxy. Requires one prior `chezmoi apply` on this machine.
+EXTERNAL_CLONES=(
+	"zsh:$HOME/.config/zsh"
+	"nvim:$HOME/.config/nvim"
+	"firefox:$HOME/.config/firefox"
+	"llm-wiki:$HOME/.config/ai/llm-wiki"
+)
+for item in "${EXTERNAL_CLONES[@]}"; do
+	dir=${item#*:}
+	[ -d "$dir/.git" ] || {
+		printf 'External clone missing: %s — run chezmoi apply first\n' "$dir" >&2
+		exit 1
+	}
+done
+
 # The disposable source is a locked clone of Git HEAD. Refuse to silently test
 # stale committed config when deployable source paths have local changes.
 while IFS= read -r status_line; do
@@ -52,6 +69,9 @@ for item in "${images[@]}"; do
 		--env "CHEZMOI_TEST_VERSION=$CHEZMOI_TEST_VERSION"
 		--entrypoint /bin/bash
 	)
+	for item in "${EXTERNAL_CLONES[@]}"; do
+		docker_args+=(--volume "${item#*:}:/ext/${item%%:*}:ro")
+	done
 
 	printf '\n===== %s (%s%s, profile=%s, role=%s) =====\n' \
 		"$name" "$image" "${platform:+, $platform}" "$profile" "$role"
@@ -140,18 +160,17 @@ as_user chezmoi init --no-tty \
 SOURCE="$TEST_HOME/.local/share/chezmoi"
 [[ -d "$SOURCE/.git" ]]
 
-# Pre-clone .chezmoiexternal.toml repos from the mounted local repositories
-# so chezmoi apply needs no GitHub access; apply then only fast-forwards them.
-# chezmoi never re-clones an existing directory, so the firefox clone must
-# already carry the branch pinned by .chezmoiexternal.toml clone.args.
-step "pre-clone external repos from local repositories"
+# Pre-clone .chezmoiexternal.toml repos from the mounted live clones so
+# chezmoi apply exercises its existing-repo path (pull — chezmoi never
+# re-clones an existing directory) with no GitHub access at all. The firefox
+# clone must already carry the branch pinned by .chezmoiexternal.toml
+# clone.args.
+step "pre-clone external repos from mounted live clones"
 as_user mkdir -p "$TEST_HOME/.config" "$TEST_HOME/.config/ai"
-as_user git clone --quiet /workspace/.zsh "$TEST_HOME/.config/zsh"
-as_user git clone --quiet /workspace/.nvim "$TEST_HOME/.config/nvim"
-as_user git clone --quiet --branch custom \
-  /workspace/dot_config/firefox "$TEST_HOME/.config/firefox"
-as_user git clone --quiet /workspace/dot_config/ai/llm-wiki \
-  "$TEST_HOME/.config/ai/llm-wiki"
+as_user git clone --quiet /ext/zsh "$TEST_HOME/.config/zsh"
+as_user git clone --quiet /ext/nvim "$TEST_HOME/.config/nvim"
+as_user git clone --quiet --branch custom /ext/firefox "$TEST_HOME/.config/firefox"
+as_user git clone --quiet /ext/llm-wiki "$TEST_HOME/.config/ai/llm-wiki"
 for repo in zsh nvim firefox ai/llm-wiki; do
 	[[ -d "$TEST_HOME/.config/$repo/.git" ]]
 done
@@ -180,6 +199,11 @@ while IFS= read -r -d "" source_path; do
   target=$(as_user chezmoi target-path "$SOURCE/$source_path")
   relative="${target#"$TEST_HOME"/}"
   printf "%s\n" "$relative" >>"$SOURCE/.chezmoiignore"
+  # An encrypted target can be re-included by a ! negation elsewhere in
+  # .chezmoiignore (e.g. !.trae/traecli.toml), which would defeat the
+  # appended ignore and deploy ciphertext — drop such lines.
+  grep -vF "!$relative" "$SOURCE/.chezmoiignore" >"$SOURCE/.chezmoiignore.tmp" \
+    && mv "$SOURCE/.chezmoiignore.tmp" "$SOURCE/.chezmoiignore"
   printf "%s\n" "$target" >>"$ENCRYPTED_TARGETS"
   ((encrypted_count += 1))
 done <"$TRACKED_PATHS"
@@ -191,8 +215,10 @@ step "apply and verify"
 as_user chezmoi apply --no-tty
 as_user chezmoi verify
 
-# Core rendered files and source-mode symlinks.
-[[ -f "$TEST_HOME/.zshenv" && ! -L "$TEST_HOME/.zshenv" ]]
+# Core rendered files and source-mode symlinks. dot_zshenv.tmpl is
+# git-crypt encrypted, so a locked clone cannot render ~/.zshenv — assert it
+# stays undeployed; the loop at the bottom re-checks every locked target.
+[[ ! -e "$TEST_HOME/.zshenv" && ! -L "$TEST_HOME/.zshenv" ]]
 [[ -f "$TEST_HOME/.ssh/config" && ! -L "$TEST_HOME/.ssh/config" ]]
 [[ -f "$TEST_HOME/.gitconfig" && ! -L "$TEST_HOME/.gitconfig" ]]
 # External repos are real clones, not symlinks into the source checkout.
@@ -208,15 +234,14 @@ as_user chezmoi verify
 grep -Fx "Include ~/.ssh/config.local" "$TEST_HOME/.ssh/config" >/dev/null
 grep -Fx "Include ~/.config/ssh/config" "$TEST_HOME/.ssh/config" >/dev/null
 ! grep -Fxi "Include ~/.orbstack/ssh/config" "$TEST_HOME/.ssh/config"
-grep -Fx "export HOST_PROFILE=$TEST_PROFILE" "$TEST_HOME/.zshenv" >/dev/null
 grep -Fx "    path = ~/.config/git/config" "$TEST_HOME/.gitconfig" >/dev/null
 grep -Fx "    path = ~/.gitconfig.local" "$TEST_HOME/.gitconfig" >/dev/null
 as_user ssh -G localhost >/dev/null 2>&1
 as_user git config --global --includes --get-all \
   url.git@github.com:.insteadof >/dev/null
-zsh_state=$(as_user zsh -d -f -c ". \"$TEST_HOME/.zshenv\"; \
-  print -r -- \"\$HOST_PROFILE:\$ZDOTDIR\"")
-[[ "$zsh_state" == "$TEST_PROFILE:$TEST_HOME/.config/zsh" ]]
+# HOST_PROFILE/ZDOTDIR rendering lived in dot_zshenv.tmpl, which is
+# git-crypt encrypted and thus cannot render from a locked clone; the
+# hostProfile data path is still asserted via ~/.local/zshrc below.
 
 if [[ "$TEST_PROFILE" == work ]]; then
   [[ -L "$TEST_HOME/.local/zshrc" ]]

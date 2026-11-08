@@ -92,9 +92,11 @@ CHEZMOI_TEST_FILTER=debian-12 ./scripts/test_chezmoi_containers.sh
 
 The chezmoi matrix uses work/workstation on Ubuntu, personal/workstation on
 Debian, and work/home-server on Arch. It pins chezmoi v2.72.0 and pre-clones
-all `.chezmoiexternal.toml` repos from the mounted local repositories, so only
-package and release downloads need network access. The clone intentionally
-tests committed HEAD and refuses to run when deployable source paths have
+the `.chezmoiexternal.toml` repos from this machine's live external clones
+(mounted read-only — run `chezmoi apply` once before testing), so containers
+need no GitHub credentials or proxy. Hermes stays ignored: its git-crypt
+credentials cannot be unlocked in a container. The clone intentionally tests
+committed HEAD and refuses to run when deployable source paths have
 uncommitted changes.
 
 The bootstrap does not replace package mirrors, perform Debian/Ubuntu system
