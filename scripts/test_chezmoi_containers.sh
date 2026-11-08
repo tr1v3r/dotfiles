@@ -131,7 +131,6 @@ as_user git config --global --add safe.directory "*"
 step "clone and initialize chezmoi source"
 as_user chezmoi init --no-tty \
   --guess-repo-url=false \
-  --recurse-submodules=false \
   --promptDefaults \
   --promptString "Host profile (work|personal)=$TEST_PROFILE" \
   --promptString "Machine role (workstation|home-server)=$TEST_ROLE" \
@@ -141,23 +140,26 @@ as_user chezmoi init --no-tty \
 SOURCE="$TEST_HOME/.local/share/chezmoi"
 [[ -d "$SOURCE/.git" ]]
 
-# Resolve the recorded submodule commits from local mounted repositories.
-step "hydrate submodules from local repositories"
-as_user git -C "$SOURCE" submodule init
-as_user git -C "$SOURCE" config submodule.zsh.url /workspace/.zsh
-as_user git -C "$SOURCE" config submodule.nvim.url /workspace/.nvim
-as_user git -C "$SOURCE" config submodule.firefox.url /workspace/dot_config/firefox
-as_user git -C "$SOURCE" config submodule.ai/llm-wiki.url /workspace/dot_config/ai/llm-wiki
-as_user env GIT_ALLOW_PROTOCOL=file git -C "$SOURCE" \
-  -c protocol.file.allow=always submodule update --recursive
-[[ "$(as_user git -C "$SOURCE" rev-parse HEAD)" == "$(git -C /workspace rev-parse HEAD)" ]]
-while IFS= read -r status_line; do
-  case "$status_line" in [-+U]*)
-    printf "invalid recursive submodule status: %s\n" "$status_line" >&2
-    exit 1
-    ;;
-  esac
-done < <(as_user git -C "$SOURCE" submodule status --recursive)
+# Pre-clone .chezmoiexternal.toml repos from the mounted local repositories
+# so chezmoi apply needs no GitHub access; apply then only fast-forwards them.
+step "pre-clone external repos from local repositories"
+external_repos=(
+	".zsh:.config/zsh"
+	".nvim:.config/nvim"
+	"dot_config/firefox:.config/firefox"
+	"dot_config/ai/llm-wiki:.config/ai/llm-wiki"
+)
+for entry in "${external_repos[@]}"; do
+	src="/workspace/${entry%%:*}"
+	dst="$TEST_HOME/${entry##*:}"
+	as_user mkdir -p "$(dirname "$dst")"
+	as_user git clone --quiet "$src" "$dst"
+	[[ -d "$dst/.git" ]]
+done
+
+# hermes holds git-crypt ciphertext and containers have no GPG key, so ignore
+# that external entirely instead of cloning a useless locked repo.
+printf "\n# Container test: skip hermes external (git-crypt credentials)\n.hermes\n" >>"$SOURCE/.chezmoiignore"
 
 # Enumerate effective attributes for every tracked file. Each git-crypt file in
 # the locked clone must be ciphertext before its exact target is test-ignored.
@@ -194,8 +196,11 @@ as_user chezmoi verify
 [[ -f "$TEST_HOME/.zshenv" && ! -L "$TEST_HOME/.zshenv" ]]
 [[ -f "$TEST_HOME/.ssh/config" && ! -L "$TEST_HOME/.ssh/config" ]]
 [[ -f "$TEST_HOME/.gitconfig" && ! -L "$TEST_HOME/.gitconfig" ]]
-[[ "$(readlink "$TEST_HOME/.config/zsh")" == "$SOURCE/.zsh" ]]
-[[ "$(readlink "$TEST_HOME/.config/nvim")" == "$SOURCE/.nvim" ]]
+# External repos are real clones, not symlinks into the source checkout.
+[[ -d "$TEST_HOME/.config/zsh/.git" && -f "$TEST_HOME/.config/zsh/env" ]]
+[[ -d "$TEST_HOME/.config/nvim/.git" && -f "$TEST_HOME/.config/nvim/init.lua" ]]
+[[ -d "$TEST_HOME/.config/firefox/.git" ]]
+[[ -d "$TEST_HOME/.config/ai/llm-wiki/.git" ]]
 [[ "$(readlink "$TEST_HOME/.config/git/config")" == "$SOURCE/dot_config/git/config" ]]
 [[ "$(readlink "$TEST_HOME/.cargo/config.toml")" == "$SOURCE/dot_cargo/config.toml" ]]
 [[ "$(readlink "$TEST_HOME/.condarc")" == "$SOURCE/dot_condarc" ]]

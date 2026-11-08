@@ -50,7 +50,7 @@ what is tracked:
 
 ```
 ~/.local/share/chezmoi/
-├── .zsh/ .nvim/ .hermes/ # submodules, hidden from chezmoi (dot-prefix), dir-symlinked
+├── .chezmoiexternal.toml # external repos cloned to runtime paths (zsh/nvim/hermes/firefox/llm-wiki)
 ├── dot_config/          # → ~/.config/ (all XDG configs, service stacks, deploy/)
 ├── dot_zshenv.tmpl      # → ~/.zshenv (renders HOST_PROFILE from chezmoi data)
 ├── private_dot_gitconfig.tmpl # → ~/.gitconfig loader; .gitconfig.local stays local
@@ -75,8 +75,8 @@ chezmoi init git@github.com:tr1v3r/dotfiles.git   # clone + answer the questionn
 cd ~/.local/share/chezmoi
 ./scripts/init.sh                                  # explicit system packages; self-elevates on Linux
 git-crypt unlock                                  # decrypt secrets (needs the GPG key)
-(cd .hermes && git-crypt unlock)                  # submodule credentials, same GPG key
-chezmoi apply                                     # deploy config; never installs packages
+chezmoi apply                                     # deploy config + clone externals; never installs packages
+(cd ~/.hermes && git-crypt unlock)                # hermes external repo credentials, same GPG key
 ```
 
 Package installation is deliberately explicit: `chezmoi apply` must remain usable

@@ -28,7 +28,7 @@ The checkout is the chezmoi **source** dir (`~/.local/share/chezmoi` after
 
 - `dot_config/` → `~/.config/` — all XDG configs, plus the service stacks and `deploy/`
 - `dot_trae/traecli.toml` → `~/.trae/traecli.toml` — TraeCode CLI config (git-crypt encrypted)
-- `.zsh/`, `.nvim/`, `.hermes/` — independent submodules mapped to their runtime locations
+- `.chezmoiexternal.toml` — external repos chezmoi clones to their runtime locations (`~/.config/zsh`, `~/.config/nvim`, `~/.hermes`, `~/.config/firefox`, `~/.config/ai/llm-wiki`)
 - `dot_zshenv.tmpl`, `dot_condarc`, `dot_cargo/`, `dot_gnupg/` → home-level dotfiles
 - `scripts/`, `*.md` — repo-only; encrypted `age/` and `secrets/` live under `dot_config/`
 - `.chezmoiignore` — per-machine exclusions (`machineRole`: `workstation` vs `home-server`)
@@ -90,9 +90,9 @@ CHEZMOI_TEST_FILTER=debian-12 ./scripts/test_chezmoi_containers.sh
 ```
 
 The chezmoi matrix uses work/workstation on Ubuntu, personal/workstation on
-Debian, and work/home-server on Arch. It pins chezmoi v2.72.0 and resolves all
-submodules from the mounted local repositories, so only package and release
-downloads need network access. The clone intentionally tests committed HEAD and
+Debian, and work/home-server on Arch. It pins chezmoi v2.72.0 and pre-clones all
+`.chezmoiexternal.toml` repos from the mounted local repositories, so only
+package and release downloads need network access. The clone intentionally tests committed HEAD and
 refuses to run when deployable source paths have uncommitted changes.
 
 The bootstrap does not replace package mirrors, perform Debian/Ubuntu system
