@@ -50,7 +50,7 @@ what is tracked:
 
 ```
 ~/.local/share/chezmoi/
-├── .zsh/ .nvim/ .hermes/ # submodules, hidden from chezmoi (dot-prefix), dir-symlinked
+├── .chezmoiexternal.toml # external repos cloned to runtime paths (zsh/nvim/hermes/firefox/llm-wiki)
 ├── dot_config/          # → ~/.config/ (all XDG configs, service stacks, deploy/)
 ├── dot_zshenv.tmpl      # → ~/.zshenv (renders HOST_PROFILE from chezmoi data)
 ├── private_dot_gitconfig.tmpl # → ~/.gitconfig loader; .gitconfig.local stays local
@@ -75,8 +75,8 @@ chezmoi init git@github.com:tr1v3r/dotfiles.git   # clone + answer the questionn
 cd ~/.local/share/chezmoi
 ./scripts/init.sh                                  # explicit system packages; self-elevates on Linux
 git-crypt unlock                                  # decrypt secrets (needs the GPG key)
-(cd .hermes && git-crypt unlock)                  # submodule credentials, same GPG key
-chezmoi apply                                     # deploy config; never installs packages
+chezmoi apply                                     # deploy config + clone externals; never installs packages
+(cd ~/.hermes && git-crypt unlock)                # hermes external repo credentials, same GPG key
 ```
 
 Package installation is deliberately explicit: `chezmoi apply` must remain usable
@@ -90,26 +90,30 @@ requires each git-crypt file to be ciphertext, ignores its exact target, and mus
 never deploy ciphertext. It tests committed HEAD and rejects dirty deployable
 source paths instead of silently testing stale code.
 
-## Submodules
+## External repos
 
-See `.gitmodules`. After cloning: `git submodule update --init`. Known
-submodules: `.zsh`, `.nvim` (whole-dir-symlinked to `~/.config/zsh` and
-`~/.config/nvim` via `dot_config/symlink_*.tmpl`), `.hermes`
-(whole-dir-symlinked to `~/.hermes` via `symlink_dot_hermes.tmpl`),
-`dot_config/firefox` (custom branch), `dot_config/ai/llm-wiki`. The old
+See `.chezmoiexternal.toml`. `chezmoi apply` clones each entry straight to its
+runtime location and keeps it current with `--ff-only` pulls (refreshed at
+most every 24h): `.config/zsh` and `.config/nvim` (upstream repos
+`.zsh`/`.nvim`), `.hermes` (private Hermes Agent config), `.config/firefox`
+(Firefox-UI-Fix fork, pinned to its `custom` branch via `clone.args`), and
+`.config/ai/llm-wiki` (a gist). Targets are real clones, not symlinks, and
+nothing is pinned to a commit — apply fast-forwards to the remote HEAD, a
+deliberate trade of reproducibility for always-current configs. The old
 `ranger/plugins/{ranger_devicons,ranger-gpg}` submodules are **vendored**
 (pinned commits, plain files now). `.hermes` keeps its credentials
 (`.env`, `auth.json`) git-crypt-encrypted with the same GPG key — unlock it
-once after cloning (see Bootstrap).
+once after the first apply (see Bootstrap).
 
 ## Directory Map
 
-**Shells / editors / CLI tools**: `zsh/` (submodule at `.zsh/`, has its own
-CLAUDE.md/AGENTS.md), `nvim/` (submodule at `.nvim/`), `aerc/`, `himalaya/`,
+**Shells / editors / CLI tools**: `zsh/` (external clone at `~/.config/zsh`,
+has its own CLAUDE.md/AGENTS.md), `nvim/` (external clone at `~/.config/nvim`),
+`aerc/`, `himalaya/`,
 `kitty/`, `iterm2/`, `tmux/`, `tmux-powerline/`, `ranger/`, `yazi/`,
 `lazygit/`, `gnupg/`→promoted, `ssh/`, `git/`, `raycast/`, `neofetch/`,
 `snipaste/`, `btop/` (replaced deprecated `bashtop/` 2026-08), `herdr/`,
-`dsh/`, `mise/` (Go 版本管理；node 仍在 fnm), `.hermes/` (private Hermes Agent config submodule), `skills/`, `ai/`,
+`dsh/`, `mise/` (Go 版本管理；node 仍在 fnm), `~/.hermes` (private Hermes Agent config external), `skills/`, `ai/`,
 `ortie/` (ortie contains credentials — git-crypt encrypted), `claude/`
 (`dot_claude/` → `~/.claude/`: **only** `settings.json` is chezmoi-managed, as
 `settings.json.tmpl` — chezmoi renders the home path; **never hardcode the
@@ -151,6 +155,8 @@ Do not invent a third mechanism; extend these.
 ## Conventions
 
 - Secrets via git-crypt (or 1Password CLI `op item get`) — never hardcoded.
-- Prefer editing the submodule repos in place (`.zsh/`, `.nvim/`, `.hermes/`) and committing there, then bumping the pointer here.
+- External repos (`~/.config/zsh`, `~/.config/nvim`, `~/.hermes`,
+  `~/.config/firefox`, `~/.config/ai/llm-wiki`) are plain clones: edit and
+  commit in place — no pointer to bump here.
 - Rust-modern CLI tools are the default (`bat`, `rg`, `eza`, `fd`, `zoxide`).
 - Dependabot alerts on the stale `master` default branch (default-branch switch pending).
