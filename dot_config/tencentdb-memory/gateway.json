@@ -1,0 +1,9 @@
+{
+  "server": { "corsOrigins": [] },
+  "memory": {
+    "storeBackend": "sqlite",
+    "recall": { "strategy": "keyword" },
+    "embedding": { "enabled": false, "provider": "none" },
+    "offload": { "enabled": false }
+  }
+}

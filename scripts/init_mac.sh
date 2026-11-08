@@ -95,6 +95,17 @@ for pkg in "${nvim_lsp_brews[@]}"; do
 	brew install "$pkg" || echo "WARN: brew install $pkg failed (continuing)"
 done
 
+# TypeScript 7's native package has no tsserver.js; use the npm TypeScript 6 server.
+if have npm; then
+	if ! have typescript-language-server || ! have tsserver; then
+		echo "Installing TypeScript LSP via npm..."
+		npm install -g typescript@6 typescript-language-server \
+			|| echo "WARN: TypeScript LSP install failed (run: npm install -g typescript@6 typescript-language-server)"
+	fi
+else
+	echo "WARN: npm not found, skipping TypeScript LSP (run: npm install -g typescript@6 typescript-language-server)"
+fi
+
 # pylsp deliberately does NOT come from brew: its plugins (black/ruff/rope) must
 # share the server's environment, so it lives in an isolated uv tool venv.
 # --system-certs keeps it working behind corporate MITM proxies.

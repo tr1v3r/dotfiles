@@ -14,6 +14,10 @@
 # ids, so keep it out of every repo at once rather than per-repo.
 **/.agent-teams/
 
+# DeepSeek Harness IM attachments and local analysis artifacts. DSH may create
+# this cache in any workspace; uploads can contain private conversation data.
+**/.dsh-im/
+
 # archify skill 生成目录
 .archify/
 

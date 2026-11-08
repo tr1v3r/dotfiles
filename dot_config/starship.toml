@@ -28,9 +28,11 @@
 # ───────────────────────────────────────────────────────────────────────
 
 add_newline = false
-# Cap worst-case wait per prompt module (git/version commands) at 300ms so a
-# cold cache or slow repo can't stall the first prompt for seconds.
-command_timeout = 300
+# Cap worst-case wait per prompt module (git/version commands) at 150ms so a
+# cold cache or slow repo can't stall the first prompt for seconds. Warm
+# `node --version` / `rustc --version` / `git status` sit well under this;
+# only cold-start outliers (rustc via rustup was seen at 1.8s) hit the cap.
+command_timeout = 150
 
 # Cryo Ops stays inside an ice-blue spectrum; alert magenta is the only
 # deliberately warm signal, reserved for failures and dirty state.
@@ -87,6 +89,12 @@ style = "cryo_steel dimmed bold"
 truncation_length = 6
 truncation_symbol = "…/"
 format = "[$path](cryo_path) "
+# Optional speed knob: `truncate_to_repo = true` (the default) makes starship
+# discover the Git repository root for this module too (14-21ms per prompt in
+# isolation). It overlaps with git_status when modules run in parallel, so the
+# wall-clock gain is only a few ms; it mainly avoids a duplicate repo discovery.
+# Trade-off: paths render relative to $HOME instead of repo-relative.
+# truncate_to_repo = false
 
 # git_state — 当前 Git 操作状态（rebase/merge/cherry-pick 等）
 #   REBASE
@@ -121,6 +129,10 @@ style = "bold cryo_alert"
 # `untracked` format disables the dirwalk entirely. Trade-off: no "?"
 # untracked marker in the prompt.
 untracked = ""
+# Optional speed knob for submodule-heavy repos: skips the per-submodule
+# status walk (measured 30ms -> 20ms in a repo with 3 submodules). Trade-off:
+# dirty submodule worktrees stop showing a marker in the prompt.
+ignore_submodules = true
 
 [golang]
 format = '[ $version](bold cryo_cyan) '

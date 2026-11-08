@@ -76,6 +76,40 @@
               high: high
               xhigh: xhigh
               max: max
+          - id: "GPT-6.1-Sol"
+            contextWindow: 475000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "GPT-6.1-Sol[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+          - id: "openrouter-4o"
+            contextWindow: 200000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
+          - id: "openrouter-4o[1m]"
+            contextWindow: 1000000
+            maxTokens: 65536
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: xhigh
+              max: max
 
 # base（apiKeyEnv/baseURL/thinking/reasoningEffort）由 dsh-tui bundle 设置，整体替换须带上；
 # maxTokens 抬到官方上限 384K=393216。（reasoningEffort: max 是 bundle base 的原始值，

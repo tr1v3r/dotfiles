@@ -1,0 +1,38 @@
+# External repos deployed to their runtime locations by chezmoi apply.
+# Replaces the former git submodules: .zsh/.nvim/.hermes were source-dir
+# repos exposed through symlink_ templates; firefox/llm-wiki were materialized
+# as source copies. Each entry below is a plain clone chezmoi keeps current
+# with fast-forward-only pulls.
+
+[".config/zsh"]
+    type = "git-repo"
+    url = "git@github.com:tr1v3r/.zsh.git"
+    pull.args = ["--ff-only"]
+    refreshPeriod = "24h"
+
+[".config/nvim"]
+    type = "git-repo"
+    url = "git@github.com:tr1v3r/nvim.git"
+    pull.args = ["--ff-only"]
+    refreshPeriod = "24h"
+
+[".hermes"]
+    type = "git-repo"
+    # Contents are git-crypt encrypted; after the first apply run:
+    #   (cd ~/.hermes && git-crypt unlock)
+    url = "git@github.com:tr1v3r/hermes.git"
+    pull.args = ["--ff-only"]
+    refreshPeriod = "24h"
+
+[".config/firefox"]
+    type = "git-repo"
+    url = "git@github.com:tr1v3r/Firefox-UI-Fix.git"
+    clone.args = ["--branch", "custom"]
+    pull.args = ["--ff-only"]
+    refreshPeriod = "24h"
+
+[".config/ai/llm-wiki"]
+    type = "git-repo"
+    url = "https://gist.github.com/396fcb101232c68ff40322efebb56a64.git"
+    pull.args = ["--ff-only"]
+    refreshPeriod = "24h"

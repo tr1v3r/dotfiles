@@ -6,7 +6,7 @@
 
 ## 这是什么
 
-`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.2.0-rc.2**，全局安装在
+`dsh` 是 DeepSeek Harness 的 CLI（npm 包 `@deepseek-ai/dsh`，本机 **0.2.1-rc.2**，全局安装在
 fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启动器**：每个 profile 是
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
@@ -51,7 +51,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.14.0）。
+- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.16.1）。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -134,6 +134,19 @@ settings.yaml，否则 TUI 冲突复发。
   一份**（`…/lib/node_modules/@deepseek-ai/dsh/node_modules/@earendil-works/pi-ai`），
   TUI profile 的 node_modules 里已无任何副本（沿 node 解析向上命中全局那份）。
   版本由 `scripts/refresh-pi-ai.sh` 换装决定，见下。
+- **2026-10-14 目录刷新**：运行时仍为 0.87.1；五条常用路由的聊天模型数据取自
+  pi-ai 1.2.0（生成于 2026-10-12）。执行
+  `bash scripts/refresh-pi-ai.sh --catalog-only` 可重做：只回填现有 API 的 chat 模型，
+  将 1.x 的 `chat:<id>` 键转回旧运行时使用的纯 id，排除图片生成与分类模型；不升级
+  SDK 或运行时代码。openai-codex 新增 `gpt-6.1-sol`，anthropic 新增
+  `claude-haiku-5-5` / `claude-sonnet-5-5`；xai / zai 无模型增删。
+  本地 Codex 策略：目录刷新时将所有推理模型的 `thinkingLevelMap.off` 设为
+  `null`（不支持 off），让 TUI / Web / headless 共用目录时不因省略 effort 而发送
+  `none`。profile 的 `reasoningEfforts` 若显式声明能力，须省略 `off`；写
+  `off: null` 反而会提供关闭选项。桌面使用独立目录，按其 profile 配置禁用 off。
+  来源版本与路由范围记录在包内 `dist/providers/data/.dsh-catalog-refresh.json`，
+  原始 manifest 的全目录生成时间保持不变。每次有实际变化才换装，并留独立
+  `pi-ai.bak-catalog-*` 完整备份；重启 TUI 后生效。整包换装模式仍默认 0.87.1。
 - 内置 catalog 提供方列表可用 `node -e` 读 `dist/providers/all.js` 的
   `getBuiltinProviders()` / `getBuiltinModels('<route>')` 查看。
 - `zai-coding-cn` 是 catalog 路由（`https://open.bigmodel.cn/api/coding/paas/v4`，
@@ -295,6 +308,13 @@ settings.yaml，否则 TUI 冲突复发。
     并进同一行）。PromptInput 22 个 hunk 里 6 个 + CommandSuggestions 2 个进 `.rej`；
     逐条改写后 accent 分支排在 caret/chip 之后（accent 只升级 plain 格）、`title` 成为
     真 prop 喂 `heading`、Esc 的 skill 浮层分支补回。
+  - ✅ **0.15.0 基线已重做**（2026-10-14，提交 ccc8238）：31 个 hunk 只有 1 个落
+    `.rej`（PromptInput 末尾 piece 构造）。上游漂移点：blank-caret piece 的
+    inverse/caret 加了 `!nativeCursor &&` 守卫；改写时保留守卫、补上两个 accent
+    字段（while 循环里 `accent: kind === ACCENT` 与空 caret piece 的
+    `accent: false`，同一 rej hunk 连带丢了前者）。白拷贝零 `.rej` 且逐字节一致；
+    验收全过（lockfile `patch_hash` = 补丁 sha256 `d17c1b06…`、vendor 1.1M、
+    `node --check`×5、真 boot 出 v0.15.0 横幅）。
   - **移植手法（2026-10-12 定稿）**：① 把 live 已装的包整份拷两份到临时目录作
     orig/mod；② 在 mod 里 `patch -p1 --fuzz=3 < 旧补丁`（fuzz 只容忍上下文漂移，改动行
     不匹配就落 `.rej`）；③ 逐条读 `.rej` 对照上游新代码改写，**别硬套**；④ 生成补丁：
