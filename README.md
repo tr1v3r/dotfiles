@@ -19,7 +19,8 @@ Debian, and Arch Linux, with Linux home-server support and Colemak optimization.
 - **git-crypt** encrypted secrets — sensitive files encrypted at rest in the repo
 - **Cross-distribution bootstrap** — Homebrew on macOS, APT on Ubuntu/Debian, and pacman on Arch
 - **Self-hosted service stacks** — Docker Compose for DNS, media, bookmarks, and downloads
-- **Submodule-based configs** — `.zsh/`, `.nvim/`, and `.hermes/` live in their own repos
+- **External-repo configs** — zsh, nvim, hermes, firefox, and llm-wiki live in
+  their own repos, cloned into place by `chezmoi apply`
 
 ## Repository Structure
 
@@ -90,10 +91,11 @@ CHEZMOI_TEST_FILTER=debian-12 ./scripts/test_chezmoi_containers.sh
 ```
 
 The chezmoi matrix uses work/workstation on Ubuntu, personal/workstation on
-Debian, and work/home-server on Arch. It pins chezmoi v2.72.0 and pre-clones all
-`.chezmoiexternal.toml` repos from the mounted local repositories, so only
-package and release downloads need network access. The clone intentionally tests committed HEAD and
-refuses to run when deployable source paths have uncommitted changes.
+Debian, and work/home-server on Arch. It pins chezmoi v2.72.0 and pre-clones
+all `.chezmoiexternal.toml` repos from the mounted local repositories, so only
+package and release downloads need network access. The clone intentionally
+tests committed HEAD and refuses to run when deployable source paths have
+uncommitted changes.
 
 The bootstrap does not replace package mirrors, perform Debian/Ubuntu system
 upgrades, clone configuration into root's home, or change the login shell. On
@@ -106,8 +108,9 @@ Linux, use `./scripts/init.sh --help` for optional groups, dry-run, and retry co
   `dot_trae/traecli.toml`, various `*.env`).
 - **Editing**: non-template targets are symlinks — edit in place. Templates
   (`*.tmpl`) are rendered copies; edit them with `chezmoi edit <target>`.
-- **Submodules**: `.zsh/`, `.nvim/`, and `.hermes/` are separate repos
-  with their own docs — edit and commit there, then bump the pointer here.
+- **External repos**: zsh, nvim, hermes, firefox, and llm-wiki are separate
+  repos with their own docs, cloned to their runtime paths — edit and commit
+  in place; there is no pointer to bump here.
 - **SSH layering**: chezmoi renders `~/.ssh/config`; machine-local overrides live in
   unmanaged `~/.ssh/config.local`, macOS also includes OrbStack, and shared hosts
   remain in the encrypted `~/.config/ssh/config`.
