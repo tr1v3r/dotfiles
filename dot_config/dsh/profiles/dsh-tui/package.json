@@ -2,7 +2,7 @@
   "name": "dsh-profile-dsh-tui",
   "private": true,
   "dependencies": {
-    "@deepseek-harness-tui/dsh-tui": "0.18.0",
+    "@deepseek-harness-tui/dsh-tui": "0.19.0",
     "@tr1v3r/dsh-ltm": "0.3.3"
   },
   "dsh": {
