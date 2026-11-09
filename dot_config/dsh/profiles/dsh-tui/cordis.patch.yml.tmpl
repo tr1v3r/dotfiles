@@ -162,6 +162,30 @@
           contextWindow: 512000
           maxTokens: 128000
 
+# ===== 新版 DeepSeek Search & Fetch API（2026-11-09 调研备忘，暂不启用）=====
+# 目标：内置 web_search/web_fetch 默认走 DS 专用检索端点（@deepseek-ai/dsh-web-deepseek-api，
+# 注册 deepseek-search-api / deepseek-fetch-api，https://api.deepseek.com/v1/tools/search|fetch，
+# 一次直接请求、无辅助模型轮次；base 内置默认是 Messages 搜索 + 本地 HTTP 抓取）。
+# ⚠️ 两步缺一不可：
+#   1) TUI bundle 把 tool-web 禁用了（dump：patched by @deepseek-harness-tui/dsh-tui，
+#      disabled: true）——不解禁它，TUI 会话里根本没有内置 web 工具（联网现在全靠
+#      下方 mcp-firecrawl / mcp-zai-*）。解禁只需 patch disabled，config 沿用 bundle 值
+#      （fetch: true / searchTimeoutMs: 60000；search 默认 true，两工具都会注册）。
+#   2) 把 web 条目指到新 API（base 的该条目只有这两个字段，整体替换写全即可）：
+#        - id: web
+#          config:
+#            searchProvider: deepseek-search-api
+#            fetchProvider: deepseek-fetch-api
+#        - id: tool-web
+#          disabled: false
+# 凭据：web-deepseek-api 默认 apiKeyEnv=DEEPSEEK_API_KEY（.credentials.yaml 已有，
+# credentials 服务逐次解析，GUI/launchd 也能用）；deepseek-account 路由的会话自动改用
+# 账号 token（2026-10-16 起公网 Search/Fetch 接受）。凭据缺失时 dsh-tool-web 会把两工具
+# 从该请求直接撤下（工具不出现，而非报错）。
+# 解禁后内置工具与 mcp-firecrawl / mcp-zai-search 职能重叠，注意取舍。
+# 验证：--dump-config | grep -A4 -E '^- id: (web|tool-web)$'；改完须重启 TUI 生效。
+# （Web/桌面版没这么麻烦：插件页 → 网页搜索 → 「启用新版 Web 搜索 API」开关即可。）
+
 - insert:
     - id: mcp-firecrawl
       name: '@deepseek-ai/dsh-mcp-client'
