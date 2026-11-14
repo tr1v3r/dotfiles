@@ -331,6 +331,13 @@ settings.yaml，否则 TUI 冲突复发。
     workspace 之外，沙箱下要 danger-full-access）。验收：三件事 + 真 boot（`timeout 15
     script -q /dev/null dsh --profile dsh-tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
     补丁的 sha256；已在跑的 TUI 加载的是旧模块，要重启才生效。
+  - **无头升级 TUI 命令（备查）**：
+    `dsh plugin --profile dsh-tui update --latest @deepseek-harness-tui/dsh-tui </dev/null`
+    —— `dsh plugin` 只是转发 pnpm（`update --latest` 无视 semver range 拉最新并改写
+    package.json），是 TUI 内 `/update` 的脚本化替代；结尾 `</dev/null` 必须带：堵住
+    stdin，防 pnpm 交互确认在无 TTY 场景挂死。与 `/update` 不同，它**不走**
+    `updateTui()` 的 allowBuilds/release-age 预置，跑前自查这两项；同样吃下条补丁键
+    坑（`allowUnusedPatches: true` 已常开兜底），跑完仍按「移植手法」重做补丁。
   - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
     `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
     **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被

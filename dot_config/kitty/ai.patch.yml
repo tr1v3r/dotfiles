@@ -1,0 +1,18 @@
+# 仅供 kitty AI 对话窗的 --patch 使用，不修改普通 TUI 的持久配置。
+# 部署默认值为 DS Flash / high；仍遵循普通 TUI 的模型 / effort 选择优先级，
+# 已保存的 /model、/effort 或会话设置可能覆盖这里；不做独立偏好隔离。
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
+    reasoningEffort: high
+
+# 终端问答无需启动这些 MCP；减少首次启动开销，不影响普通 dsh TUI。
+- id: mcp-firecrawl
+  disabled: true
+- id: mcp-zai-search
+  disabled: true
+- id: mcp-zai-reader
+  disabled: true
+- id: mcp-zai-zread
+  disabled: true

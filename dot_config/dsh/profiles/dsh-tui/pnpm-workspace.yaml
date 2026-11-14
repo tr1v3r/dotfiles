@@ -16,17 +16,13 @@ autoInstallPeers: false
 allowUnusedPatches: true
 
 minimumReleaseAgeExclude:
-  - '@tr1v3r/dsh-ltm@0.3.2 || 0.3.3'
-  - "@tr1v3r/dsh-ltm@0.2.0"
-  - "@deepseek-harness-tui/dsh-tui@0.10.2"
-  - "@deepseek-harness-tui/dsh-tui@0.11.2"
-  - '@deepseek-harness-tui/dsh-tui@0.18.0 || 0.17.0'
+  - '@tr1v3r/dsh-ltm@0.2.0 || 0.3.2 || 0.3.3 || 0.3.5'
+  - '@deepseek-harness-tui/dsh-tui@0.20.1 || 0.20.0'
 
 nodeLinker: hoisted
 
 patchedDependencies:
   "@deepseek-harness-tui/dsh-tui@0.16.1": patches/@deepseek-harness-tui__dsh-tui@0.16.1.patch
-
 
 ignoredOptionalDependencies:
   - '@img/sharp-darwin-x64'
@@ -58,6 +54,4 @@ ignoredOptionalDependencies:
   - '@anthropic-ai/claude-agent-sdk-linux-x64-musl'
   - '@anthropic-ai/claude-agent-sdk-win32-arm64'
   - '@anthropic-ai/claude-agent-sdk-win32-x64'
-
-
 

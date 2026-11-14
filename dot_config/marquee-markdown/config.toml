@@ -1,0 +1,59 @@
+# Colemak navigation, matching Neovim and Yazi:
+#       u
+#     n   i
+#       e
+# Overrides merge with the defaults; arrows and j/k remain available.
+
+[general]
+style = "tokyo-night"
+mouse = true
+
+[ui]
+contents = true
+hints = true
+
+[keys.document]
+"n" = "scroll-left"
+"e" = "line-down"
+"u" = "line-up"
+"i" = "scroll-right"
+"U" = "half-page-up"
+"E" = "half-page-down"
+"ctrl+u" = "half-page-up"
+"ctrl+e" = "half-page-down"
+# n/e are navigation now: move search hits and editing out of their way.
+"," = "search-next"
+"." = "search-previous"
+"N" = "none"
+"o" = "edit"
+
+[keys.browser]
+"n" = "browser-page-up"
+"e" = "browser-down"
+"u" = "browser-up"
+"i" = "browser-page-down"
+"U" = "browser-page-up"
+"E" = "browser-page-down"
+"ctrl+u" = "browser-page-up"
+"ctrl+e" = "browser-page-down"
+
+[keys.toc]
+"n" = "toc-collapse"
+"e" = "toc-down"
+"u" = "toc-up"
+"i" = "toc-expand"
+
+[keys.help]
+"e" = "line-down"
+"u" = "line-up"
+"U" = "half-page-up"
+"E" = "half-page-down"
+"ctrl+u" = "half-page-up"
+"ctrl+e" = "half-page-down"
+
+[keys.themes]
+"e" = "theme-down"
+"u" = "theme-up"
+
+# Prompts keep their text-editing defaults: typing n/e/u/i enters text,
+# and Ctrl+U clears the query instead of moving around.

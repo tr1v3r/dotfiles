@@ -16,6 +16,7 @@ scripts
 .config/pihole
 {{ end }}
 {{ if ne .chezmoi.os "darwin" }}
+Library/Application Support/marquee-markdown
 .aerospace.toml
 .config/aerospace
 .config/iterm2
