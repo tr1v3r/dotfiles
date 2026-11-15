@@ -1,0 +1,54 @@
+#!/bin/bash
+# Sync the chezmoi-managed DNS overrides (~/.config/hosts/hosts.local) into
+# /etc/hosts between marker lines, then flush the DNS cache. Idempotent: only
+# the managed block is rewritten, entries outside the markers are preserved,
+# and an unchanged block skips the sudo prompt entirely. Skips with a warning
+# (never fails `chezmoi apply`) when sudo is unavailable, e.g. headless runs.
+# hosts-sha256: {{ include "dot_config/hosts/hosts.local" | sha256sum }}
+set -euo pipefail
+
+[[ "$(uname -s)" == "Darwin" ]] || exit 0
+
+BEGIN='# >>> chezmoi hosts (managed) >>>'
+END='# <<< chezmoi hosts (managed) <<<'
+HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}"
+FRAGMENT="$HOME/.config/hosts/hosts.local"
+
+if [[ ! -f "$FRAGMENT" ]]; then
+	echo "WARN: hosts-sync: missing $FRAGMENT; re-run chezmoi apply" >&2
+	exit 0
+fi
+
+tmp="$(mktemp)"
+new="$(mktemp)"
+trap 'rm -f "$tmp" "$new"' EXIT HUP INT TERM
+
+# Drop any previous managed block, collapse trailing blank lines to one.
+awk -v begin="$BEGIN" -v end="$END" '
+	$0 == begin { inblk = 1 }
+	inblk       { if ($0 == end) inblk = 0; next }
+	            { print }
+' "$HOSTS_FILE" | perl -0777 -pe 's/\n+\z/\n/' > "$new"
+printf '\n%s\n' "$BEGIN" >> "$new"
+cat "$FRAGMENT" >> "$new"
+printf '%s\n' "$END" >> "$new"
+
+# Unchanged block: nothing to install, no sudo needed.
+if cmp -s "$HOSTS_FILE" "$new"; then
+	exit 0
+fi
+
+if ! command -v sudo >/dev/null 2>&1 \
+	|| ! { sudo -n true 2>/dev/null || sudo true 2>/dev/null; }; then
+	echo "WARN: hosts-sync: sudo unavailable; run 'chezmoi apply' from an interactive terminal to update $HOSTS_FILE" >&2
+	exit 0
+fi
+
+# One-time pristine backup before the first managed write.
+if [[ ! -f "$HOSTS_FILE.chezmoi.bak" ]]; then
+	sudo cp -p "$HOSTS_FILE" "$HOSTS_FILE.chezmoi.bak"
+fi
+sudo tee "$HOSTS_FILE" >/dev/null < "$new"
+sudo dscacheutil -flushcache 2>/dev/null || true
+sudo killall -HUP mDNSResponder 2>/dev/null || true
+echo "hosts-sync: updated managed block in $HOSTS_FILE and flushed DNS cache"
