@@ -12,7 +12,11 @@ def main(args):
 @result_handler(no_ui=True)
 def handle_result(args, answer, target_window_id, boss):
     opts = get_options()
-    shaders = () if 'northern-lights' in opts.custom_shaders else ('northern-lights',)
+    shaders = list(opts.custom_shaders)
+    if 'northern-lights' in shaders:
+        shaders.remove('northern-lights')
+    else:
+        shaders.insert(0, 'northern-lights')
     # Reparse fresh keymap definitions: runtime key definitions are consumed
     # after application, so directly reapplying get_options() breaks macOS keys.
     overrides = tuple(
@@ -20,7 +24,7 @@ def handle_result(args, answer, target_window_id, boss):
         if line.split(maxsplit=1)[:1] != ['custom_shaders']
     )
     fresh = load_config(*opts.all_config_paths, overrides=overrides)
-    # A real empty tuple disables shaders even in builds treating "none" as a name.
+    # Keep other shaders (e.g. Lightning) active when aurora is disabled.
     # _replace() drops parsed keymap/config metadata; modify the fresh options.
-    fresh.custom_shaders = shaders
+    fresh.custom_shaders = tuple(shaders)
     boss.apply_new_options(fresh)
