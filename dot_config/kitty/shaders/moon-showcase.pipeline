@@ -1,6 +1,0 @@
-# Kitty >= 0.50. Off at startup; toggle with Option+Command+G.
-# Disabled groups are not rendered. Keep the daily workspace free of motion.
-startgroup
-    animation_toggle user:moon-showcase
-    shaders crt
-endgroup
