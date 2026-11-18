@@ -1,8 +1,28 @@
 # dsh-tui 的个人覆盖层，在 bundle 之后应用。
-# 仅保留个人路由、认证分工、DeepSeek 输出预算和 Colemak 按键。
+# 保留个人路由、认证分工、搜索偏好、DeepSeek 输出预算和 Colemak 按键。
 # Codex/Claude 由 dsh-tui-auth 管理；Copilot 和 API Key 路由由 llm-pi-ai 管理。
 # providers 不得重叠；TUI auth 不挂载 xAI。
 # config 是整体替换：修改 TUI 条目时须保留下方 bundle 的启动变量映射。
+
+# 内置搜索固定走 DeepSeek Search API；网页抓取保留本地 HTTP。
+- id: web
+  config:
+    searchProvider: deepseek-search-api
+    fetchProvider: http
+
+# TUI bundle 默认禁用内置 web 工具；只解禁，沿用其超时与抓取配置。
+- id: tool-web
+  disabled: false
+
+# profile 级偏好对所有工作目录生效；保留 bundle 的 persona 环境变量入口。
+# 这是模型选工具的指令，不是自动回退或重试机制。
+- id: system-prompt
+  config:
+    personaPrefix: !!js process.env.DSH_TUI_PERSONA ?? 'You are a coding agent.'
+    personaSuffix: |-
+      联网搜索优先使用内置 web_search；该工具调用失败、不可用或结果不足时，
+      再使用智谱搜索或 Firecrawl 等 MCP 工具。
+
 - id: llm-pi-ai
   config:
     providers:

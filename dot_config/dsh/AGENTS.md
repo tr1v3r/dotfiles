@@ -82,7 +82,7 @@ dsh/
 的分节只留在改名文件里；0.1.7 不回写 legacy 文件）。CLI 0.1.5 的 web/tui/headless
 仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。当时将 zai/traex、
 llm-deepseek maxTokens 和默认模型迁入三个 CLI profile 的 entry 层作为兜底。
-**当前 TUI（2026-11-18）**只保留个人路由、认证分工、输出预算、按键和 MCP，
+**当前 TUI（2026-11-18）**保留个人路由、认证分工、搜索偏好、输出预算、按键和 MCP，
 已移除个人默认模型及固定推理强度，不再复制旧版 bundle 的默认字段；启动变量映射
 仍须显式保留，因为 patch 的 config 是整体替换。已有 settings 与 `/effort` 选择保留，
 不能假定其内容与 entry 层等值。桌面侧配置在 `profiles/desktop/cordis.patch.yml`。
@@ -153,6 +153,18 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   131072，否则落兜底 32768）；0.87.1 起目录自带 glm-5.3 系（含 low/high/max 与
   compat 修正），本机 settings 的 zai 段因此只剩 apiKeyEnv（细节见下「pi-ai 升级后」）。
 - 模型选择器/`/provider` 向导的数据来自 `ctx.llm` 注册表 + settings seam，不联网。
+
+## TUI 搜索偏好
+
+- `profiles/dsh-tui/cordis.patch.yml.tmpl` 显式选择
+  `web.searchProvider: deepseek-search-api`，`fetchProvider: http` 保留本地 HTTP 抓取。
+- TUI bundle 默认禁用 `tool-web`，个人层用 `disabled: false` 解禁；只改 disabled，
+  保留 bundle 的 `fetch: true` 和 `searchTimeoutMs: 60000`。
+- profile 的 `system-prompt.personaSuffix` 要求优先使用 `web_search`，不可用、失败
+  或结果不足时再使用智谱搜索、Firecrawl。该规则是模型选工具的指令，不是程序自动回退。
+  `personaPrefix` 保留 `DSH_TUI_PERSONA` 或 bundle 默认的 coding-agent 身份。
+- 当前 DSH 0.2.2-rc.3 base 已挂载 `web-deepseek-api`，无需再 insert；调用需要有效
+  DeepSeek 凭据。改后精确 apply 此模板对应的 live 文件并重启 TUI。
 
 ## 调试技巧
 
