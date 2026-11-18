@@ -21,9 +21,6 @@ minimumReleaseAgeExclude:
 
 nodeLinker: hoisted
 
-patchedDependencies:
-  "@deepseek-harness-tui/dsh-tui@0.16.1": patches/@deepseek-harness-tui__dsh-tui@0.16.1.patch
-
 ignoredOptionalDependencies:
   - '@img/sharp-darwin-x64'
   - '@img/sharp-freebsd-wasm32'
