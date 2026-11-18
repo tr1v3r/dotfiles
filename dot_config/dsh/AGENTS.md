@@ -138,23 +138,13 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
 
 ## 模型目录（pi-ai）
 
-- pi-ai（`@earendil-works/pi-ai`）**0.87.1**：2026-10-12 实测只有**全局 dsh 安装树的
-  一份**（`…/lib/node_modules/@deepseek-ai/dsh/node_modules/@earendil-works/pi-ai`），
-  TUI profile 的 node_modules 里已无任何副本（沿 node 解析向上命中全局那份）。
-  版本由 `scripts/refresh-pi-ai.sh` 换装决定，见下。
-- **2026-10-14 目录刷新**：运行时仍为 0.87.1；五条常用路由的聊天模型数据取自
-  pi-ai 1.2.0（生成于 2026-10-12）。执行
-  `bash scripts/refresh-pi-ai.sh --catalog-only` 可重做：只回填现有 API 的 chat 模型，
-  将 1.x 的 `chat:<id>` 键转回旧运行时使用的纯 id，排除图片生成与分类模型；不升级
-  SDK 或运行时代码。openai-codex 新增 `gpt-6.1-sol`，anthropic 新增
-  `claude-haiku-5-5` / `claude-sonnet-5-5`；xai / zai 无模型增删。
-  本地 Codex 策略：目录刷新时将所有推理模型的 `thinkingLevelMap.off` 设为
-  `null`（不支持 off），让 TUI / Web / headless 共用目录时不因省略 effort 而发送
-  `none`。profile 的 `reasoningEfforts` 若显式声明能力，须省略 `off`；写
-  `off: null` 反而会提供关闭选项。桌面使用独立目录，按其 profile 配置禁用 off。
-  来源版本与路由范围记录在包内 `dist/providers/data/.dsh-catalog-refresh.json`，
-  原始 manifest 的全目录生成时间保持不变。每次有实际变化才换装，并留独立
-  `pi-ai.bak-catalog-*` 完整备份；重启 TUI 后生效。整包换装模式仍默认 0.87.1。
+- pi-ai（`@earendil-works/pi-ai`）当前为 **1.5.2**（2026-11-18 本机核对），位于
+  全局 dsh 安装树的 `node_modules/@earendil-works/pi-ai`；TUI 使用官方
+  `dsh-llm-pi-ai` 解析到的这一份目录。旧的 0.87.x 换装与目录回填脚本已退役，
+  不再作为升级后的必做步骤。
+- 本地 Codex 策略：目录的 `thinkingLevelMap.off` 设为 `null` 表示不支持 off；
+  profile 的 `reasoningEfforts` 若显式声明能力，须省略 `off`，写 `off: null`
+  反而会提供关闭选项。桌面使用独立目录，按其 profile 配置禁用 off。
 - 内置 catalog 提供方列表可用 `node -e` 读 `dist/providers/all.js` 的
   `getBuiltinProviders()` / `getBuiltinModels('<route>')` 查看。
 - `zai-coding-cn` 是 catalog 路由（`https://open.bigmodel.cn/api/coding/paas/v4`，
@@ -260,7 +250,7 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   横幅仍显示旧名 `deepseek-v4-flash`；要在 TUI 用 `deepseek-flash` 得在 TUI 内
   `/model` 选一次（会持久化）。
   （2026-09-29 已完成升级：`npm i -g @deepseek-ai/dsh@0.2.0-rc.1`；npm i -g 会把 pi-ai
-  整树重建回 0.85.1，重跑 `scripts/refresh-pi-ai.sh` 换回 0.87.1；TUI 0.11.2 真实 boot
+  整树重建回 0.85.1，当时手工换回 0.87.1（该旧版补救流程已退役）；TUI 0.11.2 真实 boot
   通过、版本横幅警告消失，headless 一句话 OK，web 组合到 listen 阶段（3080 被已在跑的
   旧实例占用 → EADDRINUSE，非升级问题）。升级途中 TUI 一度 startup failed，见下面
   「0.2.0-rc.1 的两个新坑」。）
@@ -282,7 +272,7 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
     `0.2.0-rc.2`，所以 rc.2 不再门禁 TUI。现状：`dsh --version` = 0.2.0-rc.2、
     TUI 0.14.0 真实 boot 出横幅、全局 pi-ai 实测 0.87.1（换装态未被 npm i -g 打回
     0.85.x）。历史（2026-09-29 决策）：0.11.2 名单止于 rc.1，当时停在 rc.1 等适配；
-    完整链路仍是 `npm i -g` → 复查 `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 →
+    当时的升级链路包含手工换装（现已退役）；当前应先核对官方依赖与目录，再做 TUI 升版、补丁移植及
     真 boot 三 profile。
   - ⚠️ **client 侧 `settingsScope` 服务已改名为 `configForms`**（2026-09-29 实测）：
     官方 `dsh-client-ui-settings` 现在 provide `ctx.configForms`（取用面是
@@ -420,26 +410,11 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   supportsStrictMode / zaiToolStream 两个 compat 修正——settings 的 zai 段已整段
   删除 models + 路由级 compat，只留 apiKeyEnv，整路由回落目录（不声明即用目录，
   比"只列 id 的对象列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
-- **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
-  `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
-  anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
-  不联网刷新。官方路径走不通：dsh-llm-pi-ai 全部已发布版本（至 0.1.7-alpha.1）
-  都锁 pi-ai `^0.85.1`（0.x caret 不跨 minor）、dsh-auth 的 `modelOverrides`
-  缺 id 即 boot 抛错、settings 又不能声明 openai-codex（见上注册冲突坑）——
-  唯一立即生效的手段是物理替换目录：跑 `scripts/refresh-pi-ai.sh [version]`
-  （下载/预验全在临时目录完成、留 `.bak` 上一版备份、失败自动回滚、换后打印
-  各路由模型增删 diff；macOS 自带 bash 3.2 吞多字节字符，脚本里变量一律加
-  花括号）。⚠️ `npm i -g @deepseek-ai/dsh` 会整树重建、还原成 0.85.x 并删掉
-  .bak——**升级 dsh 后重跑本脚本**；`/update` 与 `dsh plugin` 只动 profile，
-  不受影响。换装后须重启会话（模型注册表 boot 时构建）。首次换装 0.85.1→
-  0.87.1：codex 路由 +gpt-6-luna/gpt-6-sol、−gpt-5.4/gpt-5.4-mini；zai 目录
-  自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
-  2026-09-29 升 engine 0.2.0-rc.1 后按上述流程重跑一次（npm i -g 已把树还原成
-  0.85.1）：0.85.1→0.87.1，模型增删与首次完全一致，`.bak-0.85.1` 已在位。
-  原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
-  dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
+- **历史 pi-ai 换装已退役（2026-11-18）**：旧版 DSH 锁定 pi-ai 0.85.x 时，
+  曾通过物理换装和目录回填补齐模型；当前已使用 1.5.2，旧脚本及其升级后重跑要求
+  已移除。模型缺失时先检查官方目录和适配器配置，再评估受支持的依赖升级。
 - ⚠️ **桌面版 pi-ai 模型列表（0.1.7-rc.2）**：app.asar 自带 pi-ai 0.85.1，
-  与 `scripts/refresh-pi-ai.sh` 换装的全局 CLI/Web 0.87.1 是两份目录；换装全局目录
+  与全局 CLI/Web 的 pi-ai 是两份目录；修改全局目录
   **不会刷新桌面目录**。桌面的 `profiles/desktop/cordis.patch.yml` 若要限定
   `openai-codex.models`，必须写对象数组（如 `- id: gpt-6-astra`），不能写裸字符串：
   `dsh-llm-pi-ai` 的 schema 要求每项有字符串 `id`，否则整个 `llm-pi-ai` 配置无效，
@@ -464,18 +439,12 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
     bootstrap namespace，实测返回空但域里其实已生效）；可靠验证是 `launchctl print
     gui/$(id -u)/local.dsh.home-env` 的 `inherited environment`，或 GUI 启动的会话里
     `env | grep DSH_HOME`。
-  - ⚠️ **首次部署先迁移**：`~/.dsh` 若仍是实目录，**不要直接对它 chezmoi apply**。
-    在独立终端、Cmd-Q 完全退出桌面版后，先运行
-    `bash scripts/dsh-migrate-desktop-home.sh --dry-run --link` 检查计划，再运行
-    `bash scripts/dsh-migrate-desktop-home.sh --link`。脚本仅复制缺失会话/状态；目标同名
-    文件一律保留，已有 desktop profile 与 memory 作为整体保留，不混装依赖或 SQLite。
-    然后把旧目录改名为 `~/.dsh.backup-<UTC时间>-<pid>`，保留所有冲突与凭据，再仅部署
-    `.dsh` 链接（排除 apply scripts，不覆盖整个 dsh 配置）。独立记忆库与同名会话日志
-    不自动合并，需在备份中人工审查；备份含秘密，不提交。进程查询失败时拒绝迁移。
-  - `scripts/dsh-migrate-desktop-home.sh` 默认只复制、不切换目录；`--force` 只允许预复制，
-    不能与 `--link` 同用。源/目标为同一物理目录时直接退出，链接部署后重跑安全。
-    回滚时先停 app，移开软链接并恢复备份，同时停用 chezmoi 的链接规则；仅清除
-    `DSH_HOME` 不再能回滚。登录项竞态由链接兜底，首次部署后从 Dock 手动重启 app。
+  - **本机目录迁移已完成（2026-11-18 复核）**：`~/.dsh` 已是指向
+    `~/.config/dsh` 的软链接，一次性迁移脚本及对应测试已删除。未来其他机器若仍有
+    `~/.dsh` 实目录，先退出桌面版、备份并审查两边状态，再部署链接；不要直接覆盖
+    旧目录，也不要混装 profile 依赖或合并 SQLite 数据库。已有备份与凭据不在本次
+    脚本清理范围内。回滚目录时须同时处理 chezmoi 链接规则，仅清除 `DSH_HOME`
+    不会改变默认 home 链接。
   - 桌面版对 `settings.yaml` 的态度随版本翻转：0.1.6 不读（未挂 `dsh-settings-file`）；
     **0.1.7-rc.2 起主动导入并没收**（见上方 settings.yaml 节的事故记录）。它的配置
     全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。
