@@ -116,12 +116,12 @@ TUI 的 Codex / Claude 订阅由 `dsh-tui-auth` 注册；Copilot、zai 与 traex
   官方库中已有的 Codex / Claude 记录保留，但不用于当前 TUI 的这两条路由。
 - web profile 本就没有 dsh-auth；其 `cordis.patch.yml` 可以自行声明官方 codex 路由，
   并使用官方凭据库中的登录态。
-- Copilot 优先用 `node scripts/dsh-official-auth.mjs login github-copilot` 走官方
-  authorization 的设备码登录，无需手工找 token。也可通过官方 credentials 的
-  `COPILOT_GITHUB_TOKEN` 引用提供 token；路由保持空对象，不强制 `apiKeyEnv`，
-  以便 OAuth 和原生 token 发现均可使用。不要写入 profile 或提交凭据。
-- `scripts/dsh-official-auth.mjs` 是本地终端薄桥，调用官方 authorization 服务；
-  它不实现 OAuth 协议，也不读取或搬运 TUI 的凭据。官方路由登录后重启 TUI 再 `/model`。
+- Copilot 使用官方 authorization 服务的设备码 OAuth 登录，凭据记录位于
+  `.credentials.yaml` 的 `llm-pi-ai/github-copilot`，由 pi-ai 兑换并刷新推理访问 token。
+  路由保持空对象，不强制 `apiKeyEnv`。当前 `COPILOT_GITHUB_TOKEN` 原生路径会把值
+  直接用于推理，不执行 GitHub token 兑换；GitHub PAT 在此端点返回 400，不能作为
+  这条路由的配置方案。不要从 Copilot CLI 支持 PAT 推断本适配器也支持，更不要
+  手工维护会过期的 Copilot 访问 token。登录入口应调用官方授权服务，无需保留本地脚本。
 
 ### dsh-tui-auth 是谁的插件？
 
