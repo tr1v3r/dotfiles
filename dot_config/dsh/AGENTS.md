@@ -95,38 +95,46 @@ TUI 树里同时存在三个 LLM 适配器：
 1. **`llm-deepseek`**（`@deepseek-ai/dsh-llm-deepseek`）— 原生 DeepSeek 适配器，
    独占路由 `deepseek-official`，key 走 `DEEPSEEK_API_KEY`。TUI bundle 把它设为
    默认（`thinking: enabled, reasoningEffort: max`）。
-2. **`llm-pi-ai`**（`@deepseek-ai/dsh-llm-pi-ai`）— 多提供方适配器，**dormant 挂载**：
-   零路由直到 settings 的 `llm-pi-ai:` 分节提供 providers。注册是**整批 all-or-nothing**：
-   任一路由与已有注册冲突，整批被拒（记录日志并保留旧注册）。
-3. **`dsh-tui-auth`**（`@deepseek-harness-tui/dsh-auth`，**第三方**，见下）— 启动时
-   逐条单独注册 `openai-codex` / `anthropic` / `xai` 三条 OAuth 订阅路由（刻意单条
-   注册：一条冲突不拖垮其余）。
+2. **`llm-pi-ai`**（`@deepseek-ai/dsh-llm-pi-ai`）— 多提供方适配器。路由来自
+   profile 的 entry 层 `providers` 字典（settings 同名分节按 provider 合并）。
+   注册是**整批 all-or-nothing**：任一路由与已有注册冲突，整批被拒（保留旧注册）。
+3. **`dsh-tui-auth`**（`@deepseek-harness-tui/dsh-tui/oauth`，**第三方**，见下）— 启用，
+   `providers` 显式限定为 `openai-codex` / `anthropic`，提供 TUI 内的 `/auth` 登录入口。
 
-### ⚠️ 已踩的坑（2026 修复，勿回退）
+### 订阅路由归属（2026-11-18 按 provider 共存）
 
-`settings.yaml` 的 `llm-pi-ai.providers` **绝不能声明 `openai-codex`（以及 anthropic/xai）**：
-dsh-auth 先注册了这些路由，llm-pi-ai 批量注册 `[zai-coding-cn, openai-codex]` 时因
-openai-codex 冲突而**整体失败** → `zai-coding-cn` 连带永不注册 → TUI 模型选择器
-（只列 `ctx.llm.listProviders()` 的已注册路由）查不到 glm。
-`agent-default-model` 仍会显示 zai-coding-cn，但发请求直接 `NO_ADAPTER` 失败。
+TUI 的 Codex / Claude 订阅由 `dsh-tui-auth` 注册；Copilot、zai 与 traex 由官方
+`llm-pi-ai` 注册。xAI 在两边均未声明，保持关闭。DeepSeek 原生账号与 API Key
+路由仍由 DSH 官方服务管理；TUI 的 `/auth login deepseek-account` 委托官方账号服务。
 
-修复：从 settings.yaml 删除 `openai-codex: {}` 行。验证：TUI 运行时 `zai-coding-cn`
-注册成功，模型含 glm-5.3 / glm-5.3-flash；openai-codex 仍由 dsh-auth 服务（OAuth 订阅）。
-**web profile 没有 dsh-auth**，需要 codex 时把 openai-codex 声明在
-`dsh/profiles/web/cordis.patch.yml` 的 `llm-pi-ai` entry 配置里（settings seam 按
-provider 合并，web 得到 openai-codex + zai-coding-cn 两条路由）——不要加回
-settings.yaml，否则 TUI 冲突复发。
+- 两边的 `providers` 必须互不重叠，包括 settings 或 home 级 patch 追加的路由。
+  TUI 0.19.0 逐条注册并记录同名冲突；官方适配器批量更新时遇到冲突会拒绝整批，
+  因此不要依赖加载顺序决定路由归属，也不要把两边都声明同一路由作为回退机制。
+- TUI 内用 `/auth login openai-codex` / `/auth login anthropic` 登录，其凭据存
+  `$DSH_HOME/dsh-auth/credentials.json`。官方认证记录存 `.credentials.yaml` 的
+  `llm-pi-ai/<provider>`；两套存储格式不同，不迁移、不做软链接、不自动互通。
+  官方库中已有的 Codex / Claude 记录保留，但不用于当前 TUI 的这两条路由。
+- web profile 本就没有 dsh-auth；其 `cordis.patch.yml` 可以自行声明官方 codex 路由，
+  并使用官方凭据库中的登录态。
+- Copilot 优先用 `node scripts/dsh-official-auth.mjs login github-copilot` 走官方
+  authorization 的设备码登录，无需手工找 token。也可通过官方 credentials 的
+  `COPILOT_GITHUB_TOKEN` 引用提供 token；路由保持空对象，不强制 `apiKeyEnv`，
+  以便 OAuth 和原生 token 发现均可使用。不要写入 profile 或提交凭据。
+- `scripts/dsh-official-auth.mjs` 是本地终端薄桥，调用官方 authorization 服务；
+  它不实现 OAuth 协议，也不读取或搬运 TUI 的凭据。官方路由登录后重启 TUI 再 `/model`。
 
-### dsh-auth 是谁的插件？
+### dsh-tui-auth 是谁的插件？
 
-**不是 DeepSeek 官方（deepseek-ai）的**。`@deepseek-harness-tui/dsh-auth` v0.1.0 是
-**dsh-TUI 作者 ccch1mneyyy** 的配套包（仓库 https://github.com/ccch1mneyyy/dsh-auth ），
-随 `@deepseek-harness-tui/dsh-tui` 捆绑安装（profile node_modules 的嵌套依赖），
-由 TUI bundle 的 `dsh-tui-auth` 条目挂载（`@deepseek-harness-tui/dsh-tui/oauth`）。
+**不是 DeepSeek 官方（deepseek-ai）的**，也**不是独立 npm 包**：0.16+ 起它折进了
+**dsh-TUI 作者 ccch1mneyyy** 的 `@deepseek-harness-tui/dsh-tui`，以 `./oauth` 子路径
+导出（`lib/types/oauth.js`）。TUI 包**自带的** `cordis.patch.yml` 用
+`- insert: - id: dsh-tui-auth` 挂载 `@deepseek-harness-tui/dsh-tui/oauth`。
 功能：ChatGPT/Codex、Claude Pro/Max、SuperGrok 订阅账号 OAuth 登录（`/auth` 命令），
-登录后把订阅额度挂成 LLM 路由。它把 OAuth access/refresh token 存到
-`$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 gitignore**。
-不用订阅登录可关：`dsh/profiles/dsh-tui/cordis.patch.yml` 里 `- id: dsh-tui-auth, disabled: true`。
+token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 gitignore**。
+⚠️ 代码在 TUI 包内，**无法单独卸载**；要停用只能在 profile patch 里
+`- id: dsh-tui-auth / disabled: true`（彻底移除需给 bundle patch 再打一层补丁，不值）。
+**2026-11-18 本机已恢复启用**，显式仅挂载 Codex / Claude；两套现有凭据均保留，
+登录与刷新各用自己的存储。不要省略 `providers`，否则插件默认还会挂载 xAI 等路由。
 
 ## 模型目录（pi-ai）
 
