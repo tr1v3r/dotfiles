@@ -1,22 +1,24 @@
-# Your patch layer for this dsh profile, applied after every bundle layer:
-# a top-level YAML array of loader patch entries (id-targeted config
-# overrides, disables, and insert lists; `!!js` expressions allowed).
-#
-# 2026-09-28 LLM 路由 entry 层兜底：桌面版 0.1.7-rc.2 的 settings 导入器会在
-# boot/config-reload 时无条件把 $DSH_HOME/settings.yaml 改名 .imported 吸收掉，
-# legacy 分节随时消失，故 zai/traex 提供方与 deepseek 上限常驻本 patch 层。
-# 2026-11-18：TUI 认证与官方认证按 provider 共存，凭据库保持独立。
-# Codex/Claude 由下方 dsh-tui-auth 管理；Copilot 和 API Key 路由由官方 llm-pi-ai 管理。
-# 两边 providers 不得重叠；xAI 保持关闭。
-# patch 的 config 是整体替换：以下条目均含从 0.10.2 dump 抄回的 base 字段，
-# 升级 TUI bundle 时须重新对照 --dump-config。
+# dsh-tui 的个人覆盖层，在 bundle 之后应用。
+# 仅保留个人路由、认证分工、DeepSeek 输出预算和 Colemak 按键。
+# Codex/Claude 由 dsh-tui-auth 管理；Copilot 和 API Key 路由由 llm-pi-ai 管理。
+# providers 不得重叠；TUI auth 不挂载 xAI。
+# config 是整体替换：修改 TUI 条目时须保留下方 bundle 的启动变量映射。
 - id: llm-pi-ai
   config:
     providers:
-      # Copilot 可用官方设备码 OAuth，或原生 COPILOT_GITHUB_TOKEN 凭据引用。
-      # 不写 apiKeyEnv/api/baseURL/models，沿用官方认证与 pi-ai 内置目录。
-      github-copilot: {}
-      # zai（GLM）：pi-ai 0.87.1 目录原生含 glm-5.3 系，只写 apiKeyEnv，不写 models。
+      # 沿用官方认证和内置目录，保留当前 live 的重试策略。
+      github-copilot:
+        retryPolicy:
+          mode: normal
+          maxRetries: 5
+          retryableCodes:
+            - EMPTY_RESPONSE
+            - RATE_LIMIT
+            - SERVER
+            - TIMEOUT
+            - TRANSPORT
+            - STREAM_CLOSED
+      # 智谱使用内置模型目录，仅指定凭据引用。
       zai-coding-cn:
         apiKeyEnv: ZAI_CODING_CN_API_KEY
       # traex_bridge：本机 Trae→OpenAI 网关（127.0.0.1:8317，openai-responses），
@@ -115,33 +117,20 @@
               xhigh: xhigh
               max: max
 
-# base（apiKeyEnv/baseURL/thinking/reasoningEffort）由 dsh-tui bundle 设置，整体替换须带上；
-# maxTokens 抬到官方上限 384K=393216。（reasoningEffort: max 是 bundle base 的原始值，
-# 0.10.2 与 0.11.2 tarball 的 cordis.patch.yml 均实测；此前漏抄，2026-09-29 补回。）
+# 保留个人输出预算；认证、端点和 thinking 使用适配器默认值。
+# 不设置 reasoningEffort：未显式选择强度时跟随当前模型默认值。
 - id: llm-deepseek
   config:
-    apiKeyEnv: DEEPSEEK_API_KEY
-    baseURL: !!js process.env.DEEPSEEK_BASE_URL
-    thinking: enabled
-    reasoningEffort: max
     maxTokens: 393216
 
-# entry 层默认模型兜底（settings.yaml 被桌面版吃掉时的 floor）。
-- id: agent-default-model
-  config:
-    provider: deepseek-official
-    model: deepseek-flash
-    reasoningEffort: high
-
-# base（provider/fullscreen/terminalImages/effort）从 0.10.2 dump 抄回，整体替换须带上；
-# vimKeys 原经 settings dsh-tui 分节生效（colemak，机制由 profiles/dsh-tui/patches/
-# 的本地 pnpm patch 提供），迁入 entry 层防 settings 文件消失。
+# 只覆盖个人按键；全屏/图片使用 schema 默认值，不固定模型或推理强度。
+# config 整体替换会覆盖 bundle，必须显式保留其启动参数到环境变量的映射。
 - id: dsh-tui
   config:
-    provider: deepseek-official
-    fullscreen: true
-    terminalImages: true
-    effort: max
+    preset: !!js process.env.DSH_TUI_PRESET ?? undefined
+    workspace: !!js process.env.DSH_TUI_WORKSPACE_TARGET ?? undefined
+    sessionId: !!js process.env.DSH_TUI_RESUME_SESSION ?? undefined
+    backend: !!js process.env.DSH_TUI_BACKEND || undefined
     vimKeys:
       left: n
       down: e
@@ -166,30 +155,6 @@
         gpt-5.6-sol:
           contextWindow: 512000
           maxTokens: 128000
-
-# ===== 新版 DeepSeek Search & Fetch API（2026-11-09 调研备忘，暂不启用）=====
-# 目标：内置 web_search/web_fetch 默认走 DS 专用检索端点（@deepseek-ai/dsh-web-deepseek-api，
-# 注册 deepseek-search-api / deepseek-fetch-api，https://api.deepseek.com/v1/tools/search|fetch，
-# 一次直接请求、无辅助模型轮次；base 内置默认是 Messages 搜索 + 本地 HTTP 抓取）。
-# ⚠️ 两步缺一不可：
-#   1) TUI bundle 把 tool-web 禁用了（dump：patched by @deepseek-harness-tui/dsh-tui，
-#      disabled: true）——不解禁它，TUI 会话里根本没有内置 web 工具（联网现在全靠
-#      下方 mcp-firecrawl / mcp-zai-*）。解禁只需 patch disabled，config 沿用 bundle 值
-#      （fetch: true / searchTimeoutMs: 60000；search 默认 true，两工具都会注册）。
-#   2) 把 web 条目指到新 API（base 的该条目只有这两个字段，整体替换写全即可）：
-#        - id: web
-#          config:
-#            searchProvider: deepseek-search-api
-#            fetchProvider: deepseek-fetch-api
-#        - id: tool-web
-#          disabled: false
-# 凭据：web-deepseek-api 默认 apiKeyEnv=DEEPSEEK_API_KEY（.credentials.yaml 已有，
-# credentials 服务逐次解析，GUI/launchd 也能用）；deepseek-account 路由的会话自动改用
-# 账号 token（2026-10-16 起公网 Search/Fetch 接受）。凭据缺失时 dsh-tool-web 会把两工具
-# 从该请求直接撤下（工具不出现，而非报错）。
-# 解禁后内置工具与 mcp-firecrawl / mcp-zai-search 职能重叠，注意取舍。
-# 验证：--dump-config | grep -A4 -E '^- id: (web|tool-web)$'；改完须重启 TUI 生效。
-# （Web/桌面版没这么麻烦：插件页 → 网页搜索 → 「启用新版 Web 搜索 API」开关即可。）
 
 - insert:
     - id: mcp-firecrawl

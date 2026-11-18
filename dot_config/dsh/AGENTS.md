@@ -51,7 +51,9 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.16.1）。
+- dsh-tui profile bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui` +
+  `@tr1v3r/dsh-ltm`。版本以 source/live 各自的 `package.json` 与实际安装包为准，
+  两者可能漂移；验证 patch 时须对照实际运行的 bundle。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -73,20 +75,18 @@ dsh/
 该路由的 pi-ai 内置 catalog（不是追加）；分节 schema 校验失败时 settings seam 保留
 上一份可用值并告警，不写盘。
 
-⚠️ 2026-09-28 桌面版 settings 导入器会吃掉 settings.yaml（GLM 消失事故）：桌面
+⚠️ 历史事故（2026-09-28）：桌面版 settings 导入器会吃掉 settings.yaml（GLM 消失）。桌面
 0.1.7-rc.2 起 `@deepseek-ai/dsh-settings` 把 legacy settings.yaml 视为待导入文档——
 **每次** app-boot/config-reload 时只要文件存在就无条件 `rename` 成
 `settings.yaml.imported` 再按 entry 体系吸收（改名即唯一的"只导入一次"守卫；组合不认
 的分节只留在改名文件里；0.1.7 不回写 legacy 文件）。CLI 0.1.5 的 web/tui/headless
-仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。**对策（已落地）**：
-zai/traex 提供方、llm-deepseek maxTokens、默认模型 floor 已常驻三个 CLI profile 的
-`cordis.patch.yml` entry 层（TUI 另含 vimKeys；注意 patch config 是整体替换，TUI 的
-llm-deepseek/dsh-tui 条目连带抄了 0.10.2 base 字段，升 TUI 需重新对照 dump）；
-settings.yaml 的同名分节保留为热加载层，两层等值叠加、互为兜底。dsh-better-sidebar/
-dsh-ssh 字体分节未迁（entry id 不明，属低风险装饰项）。恢复被吃的文件：
-`chezmoi apply ~/.config/dsh/settings.yaml`（live 为渲染文件非 symlink）。
-桌面侧配置已由导入器落在 `profiles/desktop/cordis.patch.yml`（chezmoi 已跟踪）。
-CLI 升 0.1.7 后（跟踪 #983）legacy 文件退役，entry 层即唯一来源。
+仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。当时将 zai/traex、
+llm-deepseek maxTokens 和默认模型迁入三个 CLI profile 的 entry 层作为兜底。
+**当前 TUI（2026-11-18）**只保留个人路由、认证分工、输出预算、按键和 MCP，
+已移除个人默认模型及固定推理强度，不再复制旧版 bundle 的默认字段；启动变量映射
+仍须显式保留，因为 patch 的 config 是整体替换。已有 settings 与 `/effort` 选择保留，
+不能假定其内容与 entry 层等值。桌面侧配置在 `profiles/desktop/cordis.patch.yml`。
+`settings.yaml` 当前是 source 普通文件、live symlink；维护规则见下方「git 约定」。
 
 ## LLM 适配器体系与 ⚠️ 路由注册冲突（重要）
 
@@ -379,11 +379,12 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   settings writer 按内存里的旧文档回写，会重现**过时注释**（2026-09-10 实测：新写在
   `agent-default-model` 下的注释被昨天的旧注释覆盖，同时 description 被按 80 列折行）。
   改完这个分节要复查文本，别只看值。
-  ✅ **entry 层漏抄的 base 字段已补回**（2026-09-29）：dsh-tui bundle 的 llm-deepseek
-  base 是 apiKeyEnv/baseURL/thinking/**reasoningEffort: max**（0.10.2 与 0.11.2 tarball
-  均实测），profile entry 层整体替换此前只带 3 个 → base 的 max 被顶掉；现已在
-  `cordis.patch.yml.tmpl` 补 `reasoningEffort: max` 并 chezmoi apply 到 live（vanilla parity，
-  实测 live 第 88 行生效）。
+  **TUI 个人覆盖已精简（2026-11-18）**：`llm-deepseek` 仅保留
+  `maxTokens: 393216`，不再复制 bundle 的 thinking / `reasoningEffort: max`。
+  `max` 本身仍有效；本机选择让未显式指定强度的新会话跟随模型默认值。
+  同时移除个人 `agent-default-model` 覆盖和 TUI 的固定 effort，保留用户已保存的
+  `/effort` 与设置选择。TUI config 整体替换 bundle，需显式保留 preset / workspace /
+  sessionId / backend 四项启动变量映射，以及个人 vimKeys。不要恢复旧版“补抄 max”做法。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
