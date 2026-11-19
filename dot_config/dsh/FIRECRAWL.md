@@ -181,7 +181,7 @@ Firecrawl Cloud 账单。
 涉及文件：
 
 ```text
-~/.config/dsh/profiles/dsh-tui/cordis.patch.yml
+~/.config/dsh/profiles/tui/cordis.patch.yml
 ~/.config/dsh/profiles/headless/cordis.patch.yml
 ~/.config/dsh/profiles/web/cordis.patch.yml
 ```
@@ -197,7 +197,7 @@ Firecrawl Cloud 账单。
 ### 验证组合配置
 
 ```bash
-dsh --profile dsh-tui --dump-config
+dsh --profile tui --dump-config
 dsh --profile headless --dump-config
 dsh --profile web --dump-config
 ```

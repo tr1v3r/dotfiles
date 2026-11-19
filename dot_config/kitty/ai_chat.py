@@ -18,7 +18,7 @@ import time
 
 MAX_CONTEXT_BYTES = 48_000
 WINDOW_VAR = "kitty_ai_chat"
-LAUNCH_SCRIPT = 'exec dsh --profile dsh-tui --patch "$HOME/.config/kitty/ai.patch.yml"'
+LAUNCH_SCRIPT = 'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml"'
 
 
 def cache_dir():

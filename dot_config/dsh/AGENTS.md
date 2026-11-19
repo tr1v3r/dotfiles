@@ -11,7 +11,7 @@ fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启�
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
 ```sh
-dsh --profile dsh-tui                  # 交互式 TUI（本机主要入口）
+dsh --profile tui                      # 交互式 TUI（本机主要入口）
 dsh --profile headless "task"          # 一次性任务，打印答案退出
 dsh --profile web                      # Web 界面（dsh web 别名）
 dsh --profile <name> --dump-config     # 打印组合后的配置树（不启动）
@@ -28,7 +28,7 @@ dsh/
 ├── cordis.patch.yml       # home 级 patch 层（本机当前为空）
 ├── .gitignore             # 秘密/运行时状态忽略规则（见「git 约定」）
 ├── profiles/
-│   ├── dsh-tui/           # 交互式 TUI profile（@deepseek-harness-tui/dsh-tui）
+│   ├── tui/               # 交互式 TUI profile（@deepseek-harness-tui/dsh-tui）
 │   ├── headless/          # 一次性任务 profile（官方 @deepseek-ai/dsh-headless）
 │   └── web/               # Web profile（第三方 @linxin666/dsh-web-ui-all 等）
 ├── sessions/              # 会话日志（jsonl.zstd，已忽略）
@@ -41,6 +41,18 @@ dsh/
 
 ## Profile 机制
 
+本机交互 profile 名为 `tui`（2026-11-19 从 `dsh-tui` 改名），source 与 live
+均为实际目录，不保留旧 profile 软链接。插件包名仍是
+`@deepseek-harness-tui/dsh-tui`，插件 ID、认证目录及 `~/.dsh-tui/` 设置目录不改名。
+Shell 的 `dsh-tui` 别名、Ctrl+T、Kitty 与 Yazi 均显式加载 `--profile tui`。
+
+升级使用 `dsh plugin --profile tui update --latest @deepseek-harness-tui/dsh-tui`。
+0.20.2 的独立启动器硬编码 `PROFILE = 'dsh-tui'`，因此不要通过上游独立的
+`dsh-tui update` 更新此 profile；TUI 内 `/update` 通过 `dsh --profile tui`
+启动时可识别当前 profile。0.20.2 的 profile 检测只读取 `--profile` 参数，
+直接 `dsh tui` 的短语法虽能启动，但无法识别 profile，`/update` 不可用。
+不要为绕过此限制修改已安装包；需要升级时使用显式 profile 命令。
+
 - 每个 profile 目录有 `package.json`（含 `dsh.profile.bundles` 列表）、`cordis.yml`
   （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**；
   2026-09-08 起源文件是 `cordis.patch.yml.tmpl`——chezmoi 模板渲染 `{{ .chezmoi.homeDir }}`，
@@ -51,7 +63,7 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui` +
+- tui profile bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui` +
   `@tr1v3r/dsh-ltm`。版本以 source/live 各自的 `package.json` 与实际安装包为准，
   两者可能漂移；验证 patch 时须对照实际运行的 bundle。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
@@ -156,7 +168,7 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
 
 ## TUI 搜索偏好
 
-- `profiles/dsh-tui/cordis.patch.yml.tmpl` 显式选择
+- `profiles/tui/cordis.patch.yml.tmpl` 显式选择
   `web.searchProvider: deepseek-search-api`，`fetchProvider: http` 保留本地 HTTP 抓取。
 - TUI bundle 默认禁用 `tool-web`，个人层用 `disabled: false` 解禁；只改 disabled，
   保留 bundle 的 `fetch: true` 和 `searchTimeoutMs: 60000`。
@@ -168,7 +180,7 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
 
 ## 调试技巧
 
-- 组合树：`dsh --profile dsh-tui --dump-config`。
+- 组合树：`dsh --profile tui --dump-config`。
 - **运行时 probe**（settings seam 生效与否只能运行时看）：用 `@deepseek-ai/dsh-app-boot`
   的 `boot()` 手动 boot profile（patches 用 `loadProfile` + bundle layers 拼），
   需伪造 `process.stdout.isTTY = true`（TUI 要求 TTY）、provide
@@ -245,7 +257,7 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
   导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
   验证法：web 直接 `dsh web` 看监听 URL；TUI 用伪 TTY
-  `timeout 15 script -q /dev/null dsh --profile dsh-tui`（渲染出横幅即通过）；
+  `timeout 15 script -q /dev/null dsh --profile tui`（渲染出横幅即通过）；
   headless 跑一句话。已知未适配：`dsh-at-file`（≤0.6.3，import
   `settingsNamespace`）与 `dsh-fetch-file`（≤0.1.2，import `CallId`），已在
   `profiles/web/cordis.patch.yml` 里 `disabled: true` 顶住，**上游发适配版后
@@ -301,8 +313,8 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
     验证法：`dsh --profile web --port 0 --no-open` 另起一个探针实例（不抢 3080）看它能否
     起到 listen + 无 pending 报错；已跑的实例必须重启（client bundle 在 boot 时缓存）+
     硬刷新页面。
-- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
-  `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
+- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/tui/package.json` 版本后跑
+  `dsh plugin --profile tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
@@ -333,16 +345,16 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
     验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 新增
     `minimumReleaseAgeExclude` 行。
   - ⚠️ **新补丁文件必须先 `chezmoi apply`**（2026-10-12 踩坑）：pnpm 解析补丁路径是
-    **相对 profile 目录**（`~/.config/dsh/profiles/dsh-tui/patches/`），而该 live 目录归
+    **相对 profile 目录**（`~/.config/dsh/profiles/tui/patches/`），而该 live 目录归
     chezmoi 管（文件是 symlink），不先
-    `chezmoi apply --exclude=scripts ~/.config/dsh/profiles/dsh-tui/patches` 就直接
+    `chezmoi apply --exclude=scripts ~/.config/dsh/profiles/tui/patches` 就直接
     `ENOENT … patches/@…@<新版>.patch`。随后在 **live profile** 跑
-    `dsh plugin --profile dsh-tui install --no-frozen-lockfile`（`~/.config` 在 DSH
+    `dsh plugin --profile tui install --no-frozen-lockfile`（`~/.config` 在 DSH
     workspace 之外，沙箱下要 danger-full-access）。验收：三件事 + 真 boot（`timeout 15
-    script -q /dev/null dsh --profile dsh-tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
+    script -q /dev/null dsh --profile tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
     补丁的 sha256；已在跑的 TUI 加载的是旧模块，要重启才生效。
   - **无头升级 TUI 命令（备查）**：
-    `dsh plugin --profile dsh-tui update --latest @deepseek-harness-tui/dsh-tui </dev/null`
+    `dsh plugin --profile tui update --latest @deepseek-harness-tui/dsh-tui </dev/null`
     —— `dsh plugin` 只是转发 pnpm（`update --latest` 无视 semver range 拉最新并改写
     package.json），是 TUI 内 `/update` 的脚本化替代；结尾 `</dev/null` 必须带：堵住
     stdin，防 pnpm 交互确认在无 TTY 场景挂死。与 `/update` 不同，它**不走**

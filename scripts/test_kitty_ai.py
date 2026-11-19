@@ -377,7 +377,7 @@ class OpenChatTests(OfflineTestCase):
         self.addCleanup(appending.stop)
 
     def test_launch_uses_normal_tui_with_patch_and_no_preference_isolation(self):
-        self.assertEqual(ai.LAUNCH_SCRIPT, 'exec dsh --profile dsh-tui --patch "$HOME/.config/kitty/ai.patch.yml"')
+        self.assertEqual(ai.LAUNCH_SCRIPT, 'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml"')
         self.assertNotIn("$1", ai.LAUNCH_SCRIPT)
         for removed in ("NODE_OPTIONS", "KITTY_AI_PREFS_DIR", "ai_tui_", "DSH_TUI_BACKEND"):
             self.assertNotIn(removed, ai.LAUNCH_SCRIPT)
