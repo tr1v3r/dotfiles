@@ -252,7 +252,8 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。⚠️ `dsh plugin`
   只是把参数转发给 pnpm，`clean` 不是 pnpm 子命令（2026-09-24 实测无效，原约定里的
   `clean --lockfile` 已去掉）。
-  pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
+  自有 `@tr1v3r/*` 已改用 scope 通配，**不用再补 `minimumReleaseAgeExclude` 版本号**
+  （见下「release-age 排除项」）；只有第三方包仍按需追加精确并集。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
   导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
@@ -342,8 +343,9 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
     不匹配就落 `.rej`）；③ 逐条读 `.rej` 对照上游新代码改写，**别硬套**；④ 生成补丁：
     两棵树改名成 `a/`、`b/` 后 `git diff --no-index --src-prefix= --dst-prefix= a b`
     —— 直接得到 `a/lib/... b/lib/...`，不必事后修前缀；⑤ 白拷贝上 `patch -p1 --dry-run`
-    验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 新增
-    `minimumReleaseAgeExclude` 行。
+    验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 给
+    `@deepseek-harness-tui/dsh-tui` 补 `minimumReleaseAgeExclude` 精确并集（自有
+    `@tr1v3r/*` 已通配免检，不必动）。
   - ⚠️ **新补丁文件必须先 `chezmoi apply`**（2026-10-12 踩坑）：pnpm 解析补丁路径是
     **相对 profile 目录**（`~/.config/dsh/profiles/tui/patches/`），而该 live 目录归
     chezmoi 管（文件是 symlink），不先
@@ -379,6 +381,20 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   「移植手法」用 `git diff --no-index` 手工生成单文件 diff（两棵树命名成 `a/`、`b/`
   即可，无需事后修前缀）→ 放进 `patches/` + 挂 `patchedDependencies`（`pnpm patch`
   只用来拿可编辑目录）。
+- **release-age 排除项：`minimumReleaseAgeExclude` 不接受版本范围**（2026-11-19 实测
+  pnpm 11.24.0）：只接受①裸包名（= 该包**所有版本**免检）②scope 通配 `@org/*`③精确
+  版本并集 `1.2.3 || 1.2.4`；写 `^` / `*` / `>=` 直接
+  `ERR_PNPM_INVALID_MINIMUM_RELEASE_AGE_EXCLUDE` 中止安装。pnpm 11 内置默认冷却 24h
+  （`minimumReleaseAge: 1440`，未显式配置也生效）；命中新鲜版本时解析阶段报
+  `ERR_PNPM_NO_MATURE_MATCHING_VERSION`，锁文件复检阶段报
+  `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`，两种情况都整批失败。本机 tui/web/
+  desktop 三个 profile 已把自有 `@tr1v3r/*` 改成 scope 通配，升级自建包**永不需要再补
+  版本号**；其余第三方包（`@deepseek-harness-tui/dsh-tui`、`@linxin666/*`、`dsh-context`
+  等）仍是精确并集，升级时按需追加。TUI 的 `ensureProfileReleaseAgeExclude` 只重写
+  `@deepseek-harness-tui/dsh-tui@…` 那一条（通配行被当 foreign 原样保留），所以 dsh-tui
+  的条目仍随 `/update` 漂移，属正常。可选 `minimumReleaseAgeExcludePrune: true`
+  （11.24.0 支持）：install/update 时自动删掉锁文件已不再解析的陈旧条目、保留注释与
+  通配，能阻止长并集继续堆垃圾，但**省不了**写新版本号。
 - ⚠️ **settings.yaml 目标是 symlink**（settings seam 会运行时改写它，
   `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置可直接改
   `~/.config/dsh/settings.yaml`（热加载立即生效），变更会同步落到 chezmoi source；
