@@ -21,7 +21,7 @@
     personaPrefix: !!js process.env.DSH_TUI_PERSONA ?? 'You are a coding agent.'
     personaSuffix: |-
       联网搜索优先使用内置 web_search；该工具调用失败、不可用或结果不足时，
-      再使用智谱搜索或 Firecrawl 等 MCP 工具。
+      再使用智谱搜索等已配置的 MCP 工具。
 
 - id: llm-pi-ai
   config:
@@ -176,24 +176,6 @@
           contextWindow: 512000
           maxTokens: 128000
 
-- insert:
-    - id: mcp-firecrawl
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: firecrawl
-        transport: stdio
-        # 绝对路径：GUI/launchd 拉起的 dsh（com.dsh.doctor）PATH 里没有 fnm，裸 npx spawn 失败
-        command: {{ .chezmoi.homeDir }}/.local/share/fnm/aliases/default/bin/npx
-        args:
-          - -y
-          - firecrawl-mcp@3.24.0
-        env:
-          FIRECRAWL_API_URL: http://127.0.0.1:3002
-          NPM_CONFIG_CACHE: !!js process.env.HOME + '/.cache/dsh-npm'
-          # 默认 registry 未同步该包（3.24.0 起长期缺失），此 npx 子进程单独走公共 npm
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        toolCallTimeoutMs: 180000
-        failOnStartupError: false
 
 # ===== GLM Coding Plan (智谱) 官方 MCP =====
 # API Key 统一读环境变量 ZAI_CODING_CN_API_KEY（~/.config/secrets/api-keys.env 导出，

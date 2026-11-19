@@ -37,7 +37,7 @@ dsh/
 └── skills/                # 外部 skill（从上游仓库克隆，已忽略）
 ```
 
-本地 Firecrawl 的部署、MCP 配置、验证与排障见 [`FIRECRAWL.md`](FIRECRAWL.md)。
+Firecrawl 本地服务已于 2026-11-19 停用；历史部署和恢复用法保留在 [`FIRECRAWL.md`](FIRECRAWL.md)。
 
 ## Profile 机制
 
@@ -166,17 +166,18 @@ token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 g
   compat 修正），本机 settings 的 zai 段因此只剩 apiKeyEnv（细节见下「pi-ai 升级后」）。
 - 模型选择器/`/provider` 向导的数据来自 `ctx.llm` 注册表 + settings seam，不联网。
 
-## TUI 搜索偏好
+## 搜索偏好
 
-- `profiles/tui/cordis.patch.yml.tmpl` 显式选择
+- TUI、Web、Headless 的 `cordis.patch.yml.tmpl` 均显式选择
   `web.searchProvider: deepseek-search-api`，`fetchProvider: http` 保留本地 HTTP 抓取。
 - TUI bundle 默认禁用 `tool-web`，个人层用 `disabled: false` 解禁；只改 disabled，
   保留 bundle 的 `fetch: true` 和 `searchTimeoutMs: 60000`。
 - profile 的 `system-prompt.personaSuffix` 要求优先使用 `web_search`，不可用、失败
-  或结果不足时再使用智谱搜索、Firecrawl。该规则是模型选工具的指令，不是程序自动回退。
+  或结果不足时再使用智谱搜索等已配置的 MCP 工具。该规则是模型选工具的指令，不是程序自动回退。
   `personaPrefix` 保留 `DSH_TUI_PERSONA` 或 bundle 默认的 coding-agent 身份。
 - 当前 DSH 0.2.2-rc.3 base 已挂载 `web-deepseek-api`，无需再 insert；调用需要有效
-  DeepSeek 凭据。改后精确 apply 此模板对应的 live 文件并重启 TUI。
+  DeepSeek 凭据。改后精确 apply 对应的 live 模板并重启相应 profile。
+- Web 已移除 `@liustack/modsearch` bundle 及依赖；三个 profile 均不再注册 Firecrawl MCP。
 
 ## 调试技巧
 

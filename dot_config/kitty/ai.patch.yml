@@ -8,8 +8,6 @@
     reasoningEffort: high
 
 # 终端问答无需启动这些 MCP；减少首次启动开销，不影响普通 dsh TUI。
-- id: mcp-firecrawl
-  disabled: true
 - id: mcp-zai-search
   disabled: true
 - id: mcp-zai-reader
