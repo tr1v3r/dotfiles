@@ -378,6 +378,8 @@ class OpenChatTests(OfflineTestCase):
 
     def test_launch_uses_normal_tui_with_patch_and_no_preference_isolation(self):
         self.assertEqual(ai.LAUNCH_SCRIPT, (
+            "printf 'dsh --profile tui --patch %q\n\n' "
+            '"$HOME/.config/kitty/ai.patch.yml"; '
             'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml" '
             '2> >(python3 "$HOME/.config/kitty/ai_chat.py" filter-stderr)'
         ))

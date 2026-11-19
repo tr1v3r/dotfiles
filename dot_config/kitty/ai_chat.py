@@ -19,6 +19,8 @@ import time
 MAX_CONTEXT_BYTES = 48_000
 WINDOW_VAR = "kitty_ai_chat"
 LAUNCH_SCRIPT = (
+    "printf 'dsh --profile tui --patch %q\n\n' "
+    '"$HOME/.config/kitty/ai.patch.yml"; '
     'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml" '
     '2> >(python3 "$HOME/.config/kitty/ai_chat.py" filter-stderr)'
 )
