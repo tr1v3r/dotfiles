@@ -16,7 +16,9 @@ autoInstallPeers: false
 allowUnusedPatches: true
 
 minimumReleaseAgeExclude:
-  - '@tr1v3r/dsh-ltm@0.2.0 || 0.3.2 || 0.3.3 || 0.3.5'
+  # Own scope: exempt every version, so upgrading @tr1v3r/* never needs a new
+  # exact-version entry here (pnpm rejects semver ranges in this list).
+  - '@tr1v3r/*'
   - '@deepseek-harness-tui/dsh-tui@0.20.2 || 0.20.1'
 
 nodeLinker: hoisted
