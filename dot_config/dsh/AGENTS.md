@@ -11,7 +11,7 @@ fnm 的 node 版本目录下）。它不是单体应用，而是 **profile 启�
 一组插件组合包（bundle）按顺序 patch 叠加出来的 Cordis 插件树。
 
 ```sh
-dsh --profile dsh-tui                  # 交互式 TUI（本机主要入口）
+dsh --profile tui                      # 交互式 TUI（本机主要入口）
 dsh --profile headless "task"          # 一次性任务，打印答案退出
 dsh --profile web                      # Web 界面（dsh web 别名）
 dsh --profile <name> --dump-config     # 打印组合后的配置树（不启动）
@@ -28,7 +28,7 @@ dsh/
 ├── cordis.patch.yml       # home 级 patch 层（本机当前为空）
 ├── .gitignore             # 秘密/运行时状态忽略规则（见「git 约定」）
 ├── profiles/
-│   ├── dsh-tui/           # 交互式 TUI profile（@deepseek-harness-tui/dsh-tui）
+│   ├── tui/               # 交互式 TUI profile（@deepseek-harness-tui/dsh-tui）
 │   ├── headless/          # 一次性任务 profile（官方 @deepseek-ai/dsh-headless）
 │   └── web/               # Web profile（第三方 @linxin666/dsh-web-ui-all 等）
 ├── sessions/              # 会话日志（jsonl.zstd，已忽略）
@@ -37,9 +37,21 @@ dsh/
 └── skills/                # 外部 skill（从上游仓库克隆，已忽略）
 ```
 
-本地 Firecrawl 的部署、MCP 配置、验证与排障见 [`FIRECRAWL.md`](FIRECRAWL.md)。
+Firecrawl 本地服务已于 2026-11-19 停用；历史部署和恢复用法保留在 [`FIRECRAWL.md`](FIRECRAWL.md)。
 
 ## Profile 机制
+
+本机交互 profile 名为 `tui`（2026-11-19 从 `dsh-tui` 改名），source 与 live
+均为实际目录，不保留旧 profile 软链接。插件包名仍是
+`@deepseek-harness-tui/dsh-tui`，插件 ID、认证目录及 `~/.dsh-tui/` 设置目录不改名。
+Shell 的 `dsh-tui` 别名、Ctrl+T、Kitty 与 Yazi 均显式加载 `--profile tui`。
+
+升级使用 `dsh plugin --profile tui update --latest @deepseek-harness-tui/dsh-tui`。
+0.20.2 的独立启动器硬编码 `PROFILE = 'dsh-tui'`，因此不要通过上游独立的
+`dsh-tui update` 更新此 profile；TUI 内 `/update` 通过 `dsh --profile tui`
+启动时可识别当前 profile。0.20.2 的 profile 检测只读取 `--profile` 参数，
+直接 `dsh tui` 的短语法虽能启动，但无法识别 profile，`/update` 不可用。
+不要为绕过此限制修改已安装包；需要升级时使用显式 profile 命令。
 
 - 每个 profile 目录有 `package.json`（含 `dsh.profile.bundles` 列表）、`cordis.yml`
   （空根，占位用，**不要编辑**）、`cordis.patch.yml`（用户的 patch 层，**编辑这个**；
@@ -51,7 +63,9 @@ dsh/
 - bundle 解析：先找 dsh 安装目录（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-headless` 等），
   再找 profile 自身 `node_modules`。
 - patch 按 `id` 定位行、**整体替换 `config`**（不做字段级合并）；后写的赢。
-- dsh-tui profile 当前 bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui`（0.16.1）。
+- tui profile bundles：`@deepseek-ai/dsh-base` + `@deepseek-harness-tui/dsh-tui` +
+  `@tr1v3r/dsh-ltm`。版本以 source/live 各自的 `package.json` 与实际安装包为准，
+  两者可能漂移；验证 patch 时须对照实际运行的 bundle。
 - `profiles/*/cordis.yml`、`pnpm-lock.yaml`、`node_modules/` 都被 gitignore（dsh/.gitignore），
   不要尝试提交。
 
@@ -73,20 +87,18 @@ dsh/
 该路由的 pi-ai 内置 catalog（不是追加）；分节 schema 校验失败时 settings seam 保留
 上一份可用值并告警，不写盘。
 
-⚠️ 2026-09-28 桌面版 settings 导入器会吃掉 settings.yaml（GLM 消失事故）：桌面
+⚠️ 历史事故（2026-09-28）：桌面版 settings 导入器会吃掉 settings.yaml（GLM 消失）。桌面
 0.1.7-rc.2 起 `@deepseek-ai/dsh-settings` 把 legacy settings.yaml 视为待导入文档——
 **每次** app-boot/config-reload 时只要文件存在就无条件 `rename` 成
 `settings.yaml.imported` 再按 entry 体系吸收（改名即唯一的"只导入一次"守卫；组合不认
 的分节只留在改名文件里；0.1.7 不回写 legacy 文件）。CLI 0.1.5 的 web/tui/headless
-仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。**对策（已落地）**：
-zai/traex 提供方、llm-deepseek maxTokens、默认模型 floor 已常驻三个 CLI profile 的
-`cordis.patch.yml` entry 层（TUI 另含 vimKeys；注意 patch config 是整体替换，TUI 的
-llm-deepseek/dsh-tui 条目连带抄了 0.10.2 base 字段，升 TUI 需重新对照 dump）；
-settings.yaml 的同名分节保留为热加载层，两层等值叠加、互为兜底。dsh-better-sidebar/
-dsh-ssh 字体分节未迁（entry id 不明，属低风险装饰项）。恢复被吃的文件：
-`chezmoi apply ~/.config/dsh/settings.yaml`（live 为渲染文件非 symlink）。
-桌面侧配置已由导入器落在 `profiles/desktop/cordis.patch.yml`（chezmoi 已跟踪）。
-CLI 升 0.1.7 后（跟踪 #983）legacy 文件退役，entry 层即唯一来源。
+仍只读 legacy 分节 → 文件被吃后 zai/GLM 提供方从 picker 消失。当时将 zai/traex、
+llm-deepseek maxTokens 和默认模型迁入三个 CLI profile 的 entry 层作为兜底。
+**当前 TUI（2026-11-18）**保留个人路由、认证分工、搜索偏好、输出预算、按键和 MCP，
+已移除个人默认模型及固定推理强度，不再复制旧版 bundle 的默认字段；启动变量映射
+仍须显式保留，因为 patch 的 config 是整体替换。已有 settings 与 `/effort` 选择保留，
+不能假定其内容与 entry 层等值。桌面侧配置在 `profiles/desktop/cordis.patch.yml`。
+`settings.yaml` 当前是 source 普通文件、live symlink；维护规则见下方「git 约定」。
 
 ## LLM 适配器体系与 ⚠️ 路由注册冲突（重要）
 
@@ -95,58 +107,56 @@ TUI 树里同时存在三个 LLM 适配器：
 1. **`llm-deepseek`**（`@deepseek-ai/dsh-llm-deepseek`）— 原生 DeepSeek 适配器，
    独占路由 `deepseek-official`，key 走 `DEEPSEEK_API_KEY`。TUI bundle 把它设为
    默认（`thinking: enabled, reasoningEffort: max`）。
-2. **`llm-pi-ai`**（`@deepseek-ai/dsh-llm-pi-ai`）— 多提供方适配器，**dormant 挂载**：
-   零路由直到 settings 的 `llm-pi-ai:` 分节提供 providers。注册是**整批 all-or-nothing**：
-   任一路由与已有注册冲突，整批被拒（记录日志并保留旧注册）。
-3. **`dsh-tui-auth`**（`@deepseek-harness-tui/dsh-auth`，**第三方**，见下）— 启动时
-   逐条单独注册 `openai-codex` / `anthropic` / `xai` 三条 OAuth 订阅路由（刻意单条
-   注册：一条冲突不拖垮其余）。
+2. **`llm-pi-ai`**（`@deepseek-ai/dsh-llm-pi-ai`）— 多提供方适配器。路由来自
+   profile 的 entry 层 `providers` 字典（settings 同名分节按 provider 合并）。
+   注册是**整批 all-or-nothing**：任一路由与已有注册冲突，整批被拒（保留旧注册）。
+3. **`dsh-tui-auth`**（`@deepseek-harness-tui/dsh-tui/oauth`，**第三方**，见下）— 启用，
+   `providers` 显式限定为 `openai-codex` / `anthropic`，提供 TUI 内的 `/auth` 登录入口。
 
-### ⚠️ 已踩的坑（2026 修复，勿回退）
+### 订阅路由归属（2026-11-18 按 provider 共存）
 
-`settings.yaml` 的 `llm-pi-ai.providers` **绝不能声明 `openai-codex`（以及 anthropic/xai）**：
-dsh-auth 先注册了这些路由，llm-pi-ai 批量注册 `[zai-coding-cn, openai-codex]` 时因
-openai-codex 冲突而**整体失败** → `zai-coding-cn` 连带永不注册 → TUI 模型选择器
-（只列 `ctx.llm.listProviders()` 的已注册路由）查不到 glm。
-`agent-default-model` 仍会显示 zai-coding-cn，但发请求直接 `NO_ADAPTER` 失败。
+TUI 的 Codex / Claude 订阅由 `dsh-tui-auth` 注册；Copilot、zai 与 traex 由官方
+`llm-pi-ai` 注册。xAI 在两边均未声明，保持关闭。DeepSeek 原生账号与 API Key
+路由仍由 DSH 官方服务管理；TUI 的 `/auth login deepseek-account` 委托官方账号服务。
 
-修复：从 settings.yaml 删除 `openai-codex: {}` 行。验证：TUI 运行时 `zai-coding-cn`
-注册成功，模型含 glm-5.3 / glm-5.3-flash；openai-codex 仍由 dsh-auth 服务（OAuth 订阅）。
-**web profile 没有 dsh-auth**，需要 codex 时把 openai-codex 声明在
-`dsh/profiles/web/cordis.patch.yml` 的 `llm-pi-ai` entry 配置里（settings seam 按
-provider 合并，web 得到 openai-codex + zai-coding-cn 两条路由）——不要加回
-settings.yaml，否则 TUI 冲突复发。
+- 两边的 `providers` 必须互不重叠，包括 settings 或 home 级 patch 追加的路由。
+  TUI 0.19.0 逐条注册并记录同名冲突；官方适配器批量更新时遇到冲突会拒绝整批，
+  因此不要依赖加载顺序决定路由归属，也不要把两边都声明同一路由作为回退机制。
+- TUI 内用 `/auth login openai-codex` / `/auth login anthropic` 登录，其凭据存
+  `$DSH_HOME/dsh-auth/credentials.json`。官方认证记录存 `.credentials.yaml` 的
+  `llm-pi-ai/<provider>`；两套存储格式不同，不迁移、不做软链接、不自动互通。
+  官方库中已有的 Codex / Claude 记录保留，但不用于当前 TUI 的这两条路由。
+- web profile 本就没有 dsh-auth；其 `cordis.patch.yml` 可以自行声明官方 codex 路由，
+  并使用官方凭据库中的登录态。
+- Copilot 使用官方 authorization 服务的设备码 OAuth 登录，凭据记录位于
+  `.credentials.yaml` 的 `llm-pi-ai/github-copilot`，由 pi-ai 兑换并刷新推理访问 token。
+  路由保持空对象，不强制 `apiKeyEnv`。当前 `COPILOT_GITHUB_TOKEN` 原生路径会把值
+  直接用于推理，不执行 GitHub token 兑换；GitHub PAT 在此端点返回 400，不能作为
+  这条路由的配置方案。不要从 Copilot CLI 支持 PAT 推断本适配器也支持，更不要
+  手工维护会过期的 Copilot 访问 token。登录入口应调用官方授权服务，无需保留本地脚本。
 
-### dsh-auth 是谁的插件？
+### dsh-tui-auth 是谁的插件？
 
-**不是 DeepSeek 官方（deepseek-ai）的**。`@deepseek-harness-tui/dsh-auth` v0.1.0 是
-**dsh-TUI 作者 ccch1mneyyy** 的配套包（仓库 https://github.com/ccch1mneyyy/dsh-auth ），
-随 `@deepseek-harness-tui/dsh-tui` 捆绑安装（profile node_modules 的嵌套依赖），
-由 TUI bundle 的 `dsh-tui-auth` 条目挂载（`@deepseek-harness-tui/dsh-tui/oauth`）。
+**不是 DeepSeek 官方（deepseek-ai）的**，也**不是独立 npm 包**：0.16+ 起它折进了
+**dsh-TUI 作者 ccch1mneyyy** 的 `@deepseek-harness-tui/dsh-tui`，以 `./oauth` 子路径
+导出（`lib/types/oauth.js`）。TUI 包**自带的** `cordis.patch.yml` 用
+`- insert: - id: dsh-tui-auth` 挂载 `@deepseek-harness-tui/dsh-tui/oauth`。
 功能：ChatGPT/Codex、Claude Pro/Max、SuperGrok 订阅账号 OAuth 登录（`/auth` 命令），
-登录后把订阅额度挂成 LLM 路由。它把 OAuth access/refresh token 存到
-`$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 gitignore**。
-不用订阅登录可关：`dsh/profiles/dsh-tui/cordis.patch.yml` 里 `- id: dsh-tui-auth, disabled: true`。
+token 存 `$DSH_HOME/dsh-auth/credentials.json` —— **敏感文件，已被 gitignore**。
+⚠️ 代码在 TUI 包内，**无法单独卸载**；要停用只能在 profile patch 里
+`- id: dsh-tui-auth / disabled: true`（彻底移除需给 bundle patch 再打一层补丁，不值）。
+**2026-11-18 本机已恢复启用**，显式仅挂载 Codex / Claude；两套现有凭据均保留，
+登录与刷新各用自己的存储。不要省略 `providers`，否则插件默认还会挂载 xAI 等路由。
 
 ## 模型目录（pi-ai）
 
-- pi-ai（`@earendil-works/pi-ai`）**0.87.1**：2026-10-12 实测只有**全局 dsh 安装树的
-  一份**（`…/lib/node_modules/@deepseek-ai/dsh/node_modules/@earendil-works/pi-ai`），
-  TUI profile 的 node_modules 里已无任何副本（沿 node 解析向上命中全局那份）。
-  版本由 `scripts/refresh-pi-ai.sh` 换装决定，见下。
-- **2026-10-14 目录刷新**：运行时仍为 0.87.1；五条常用路由的聊天模型数据取自
-  pi-ai 1.2.0（生成于 2026-10-12）。执行
-  `bash scripts/refresh-pi-ai.sh --catalog-only` 可重做：只回填现有 API 的 chat 模型，
-  将 1.x 的 `chat:<id>` 键转回旧运行时使用的纯 id，排除图片生成与分类模型；不升级
-  SDK 或运行时代码。openai-codex 新增 `gpt-6.1-sol`，anthropic 新增
-  `claude-haiku-5-5` / `claude-sonnet-5-5`；xai / zai 无模型增删。
-  本地 Codex 策略：目录刷新时将所有推理模型的 `thinkingLevelMap.off` 设为
-  `null`（不支持 off），让 TUI / Web / headless 共用目录时不因省略 effort 而发送
-  `none`。profile 的 `reasoningEfforts` 若显式声明能力，须省略 `off`；写
-  `off: null` 反而会提供关闭选项。桌面使用独立目录，按其 profile 配置禁用 off。
-  来源版本与路由范围记录在包内 `dist/providers/data/.dsh-catalog-refresh.json`，
-  原始 manifest 的全目录生成时间保持不变。每次有实际变化才换装，并留独立
-  `pi-ai.bak-catalog-*` 完整备份；重启 TUI 后生效。整包换装模式仍默认 0.87.1。
+- pi-ai（`@earendil-works/pi-ai`）当前为 **1.5.2**（2026-11-18 本机核对），位于
+  全局 dsh 安装树的 `node_modules/@earendil-works/pi-ai`；TUI 使用官方
+  `dsh-llm-pi-ai` 解析到的这一份目录。旧的 0.87.x 换装与目录回填脚本已退役，
+  不再作为升级后的必做步骤。
+- 本地 Codex 策略：目录的 `thinkingLevelMap.off` 设为 `null` 表示不支持 off；
+  profile 的 `reasoningEfforts` 若显式声明能力，须省略 `off`，写 `off: null`
+  反而会提供关闭选项。桌面使用独立目录，按其 profile 配置禁用 off。
 - 内置 catalog 提供方列表可用 `node -e` 读 `dist/providers/all.js` 的
   `getBuiltinProviders()` / `getBuiltinModels('<route>')` 查看。
 - `zai-coding-cn` 是 catalog 路由（`https://open.bigmodel.cn/api/coding/paas/v4`，
@@ -156,9 +166,22 @@ settings.yaml，否则 TUI 冲突复发。
   compat 修正），本机 settings 的 zai 段因此只剩 apiKeyEnv（细节见下「pi-ai 升级后」）。
 - 模型选择器/`/provider` 向导的数据来自 `ctx.llm` 注册表 + settings seam，不联网。
 
+## 搜索偏好
+
+- TUI、Web、Headless 的 `cordis.patch.yml.tmpl` 均显式选择
+  `web.searchProvider: deepseek-search-api`，`fetchProvider: http` 保留本地 HTTP 抓取。
+- TUI bundle 默认禁用 `tool-web`，个人层用 `disabled: false` 解禁；只改 disabled，
+  保留 bundle 的 `fetch: true` 和 `searchTimeoutMs: 60000`。
+- profile 的 `system-prompt.personaSuffix` 要求优先使用 `web_search`，不可用、失败
+  或结果不足时再使用智谱搜索等已配置的 MCP 工具。该规则是模型选工具的指令，不是程序自动回退。
+  `personaPrefix` 保留 `DSH_TUI_PERSONA` 或 bundle 默认的 coding-agent 身份。
+- 当前 DSH 0.2.2-rc.3 base 已挂载 `web-deepseek-api`，无需再 insert；调用需要有效
+  DeepSeek 凭据。改后精确 apply 对应的 live 模板并重启相应 profile。
+- Web 已移除 `@liustack/modsearch` bundle 及依赖；三个 profile 均不再注册 Firecrawl MCP。
+
 ## 调试技巧
 
-- 组合树：`dsh --profile dsh-tui --dump-config`。
+- 组合树：`dsh --profile tui --dump-config`。
 - **运行时 probe**（settings seam 生效与否只能运行时看）：用 `@deepseek-ai/dsh-app-boot`
   的 `boot()` 手动 boot profile（patches 用 `loadProfile` + bundle layers 拼），
   需伪造 `process.stdout.isTTY = true`（TUI 要求 TTY）、provide
@@ -230,12 +253,13 @@ settings.yaml，否则 TUI 冲突复发。
   chezmoi source profile 跑 pnpm（两边 ignored node_modules 是两套目录）。⚠️ `dsh plugin`
   只是把参数转发给 pnpm，`clean` 不是 pnpm 子命令（2026-09-24 实测无效，原约定里的
   `clean --lockfile` 已去掉）。
-  pnpm-workspace.yaml 的 `minimumReleaseAgeExclude` 同步换新版本号。
+  自有 `@tr1v3r/*` 已改用 scope 通配，**不用再补 `minimumReleaseAgeExclude` 版本号**
+  （见下「release-age 排除项」）；只有第三方包仍按需追加精确并集。
 - ⚠️ **dsh CLI 升级必须真实 boot 三个 profile**（2026-09-06 教训）：`--dump-config`
   只验证**配置组合**、不 import 插件模块——官方包（dsh-settings/dsh-llm 等）的
   导出面在 0.1.2-rc.1 变了，dump 全绿但 `dsh web` 起不来（插件 import 即炸）。
   验证法：web 直接 `dsh web` 看监听 URL；TUI 用伪 TTY
-  `timeout 15 script -q /dev/null dsh --profile dsh-tui`（渲染出横幅即通过）；
+  `timeout 15 script -q /dev/null dsh --profile tui`（渲染出横幅即通过）；
   headless 跑一句话。已知未适配：`dsh-at-file`（≤0.6.3，import
   `settingsNamespace`）与 `dsh-fetch-file`（≤0.1.2，import `CallId`），已在
   `profiles/web/cordis.patch.yml` 里 `disabled: true` 顶住，**上游发适配版后
@@ -252,7 +276,7 @@ settings.yaml，否则 TUI 冲突复发。
   横幅仍显示旧名 `deepseek-v4-flash`；要在 TUI 用 `deepseek-flash` 得在 TUI 内
   `/model` 选一次（会持久化）。
   （2026-09-29 已完成升级：`npm i -g @deepseek-ai/dsh@0.2.0-rc.1`；npm i -g 会把 pi-ai
-  整树重建回 0.85.1，重跑 `scripts/refresh-pi-ai.sh` 换回 0.87.1；TUI 0.11.2 真实 boot
+  整树重建回 0.85.1，当时手工换回 0.87.1（该旧版补救流程已退役）；TUI 0.11.2 真实 boot
   通过、版本横幅警告消失，headless 一句话 OK，web 组合到 listen 阶段（3080 被已在跑的
   旧实例占用 → EADDRINUSE，非升级问题）。升级途中 TUI 一度 startup failed，见下面
   「0.2.0-rc.1 的两个新坑」。）
@@ -274,7 +298,7 @@ settings.yaml，否则 TUI 冲突复发。
     `0.2.0-rc.2`，所以 rc.2 不再门禁 TUI。现状：`dsh --version` = 0.2.0-rc.2、
     TUI 0.14.0 真实 boot 出横幅、全局 pi-ai 实测 0.87.1（换装态未被 npm i -g 打回
     0.85.x）。历史（2026-09-29 决策）：0.11.2 名单止于 rc.1，当时停在 rc.1 等适配；
-    完整链路仍是 `npm i -g` → 复查 `refresh-pi-ai.sh` → TUI 升版 → 补丁再移植 →
+    当时的升级链路包含手工换装（现已退役）；当前应先核对官方依赖与目录，再做 TUI 升版、补丁移植及
     真 boot 三 profile。
   - ⚠️ **client 侧 `settingsScope` 服务已改名为 `configForms`**（2026-09-29 实测）：
     官方 `dsh-client-ui-settings` 现在 provide `ctx.configForms`（取用面是
@@ -291,8 +315,8 @@ settings.yaml，否则 TUI 冲突复发。
     验证法：`dsh --profile web --port 0 --no-open` 另起一个探针实例（不抢 3080）看它能否
     起到 listen + 无 pending 报错；已跑的实例必须重启（client bundle 在 boot 时缓存）+
     硬刷新页面。
-- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/dsh-tui/package.json` 版本后跑
-  `dsh plugin --profile dsh-tui install`（pnpm），并检查新版 bundle 是否新增
+- ⚠️ **升级 TUI 时必须重做 vimKeys 补丁**：改 `profiles/tui/package.json` 版本后跑
+  `dsh plugin --profile tui install`（pnpm），并检查新版 bundle 是否新增
   路由/namespace（dsh-auth 这类第三方插件可能再次引入冲突）；然后把
   `patches/@deepseek-harness-tui__dsh-tui@<旧版>.patch` 对新基线重生成（文件名、
   `pnpm-workspace.yaml` 的 `patchedDependencies` 键同步改版本），`pnpm install` 验证
@@ -320,17 +344,25 @@ settings.yaml，否则 TUI 冲突复发。
     不匹配就落 `.rej`）；③ 逐条读 `.rej` 对照上游新代码改写，**别硬套**；④ 生成补丁：
     两棵树改名成 `a/`、`b/` 后 `git diff --no-index --src-prefix= --dst-prefix= a b`
     —— 直接得到 `a/lib/... b/lib/...`，不必事后修前缀；⑤ 白拷贝上 `patch -p1 --dry-run`
-    验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 新增
-    `minimumReleaseAgeExclude` 行。
+    验零 `.rej` 且结果与 mod 逐字节相同；⑥ 换 `patchedDependencies` 键 + 给
+    `@deepseek-harness-tui/dsh-tui` 补 `minimumReleaseAgeExclude` 精确并集（自有
+    `@tr1v3r/*` 已通配免检，不必动）。
   - ⚠️ **新补丁文件必须先 `chezmoi apply`**（2026-10-12 踩坑）：pnpm 解析补丁路径是
-    **相对 profile 目录**（`~/.config/dsh/profiles/dsh-tui/patches/`），而该 live 目录归
+    **相对 profile 目录**（`~/.config/dsh/profiles/tui/patches/`），而该 live 目录归
     chezmoi 管（文件是 symlink），不先
-    `chezmoi apply --exclude=scripts ~/.config/dsh/profiles/dsh-tui/patches` 就直接
+    `chezmoi apply --exclude=scripts ~/.config/dsh/profiles/tui/patches` 就直接
     `ENOENT … patches/@…@<新版>.patch`。随后在 **live profile** 跑
-    `dsh plugin --profile dsh-tui install --no-frozen-lockfile`（`~/.config` 在 DSH
+    `dsh plugin --profile tui install --no-frozen-lockfile`（`~/.config` 在 DSH
     workspace 之外，沙箱下要 danger-full-access）。验收：三件事 + 真 boot（`timeout 15
-    script -q /dev/null dsh --profile dsh-tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
+    script -q /dev/null dsh --profile tui` 出横幅）+ 锁文件里 `patch_hash` 等于新
     补丁的 sha256；已在跑的 TUI 加载的是旧模块，要重启才生效。
+  - **无头升级 TUI 命令（备查）**：
+    `dsh plugin --profile tui update --latest @deepseek-harness-tui/dsh-tui </dev/null`
+    —— `dsh plugin` 只是转发 pnpm（`update --latest` 无视 semver range 拉最新并改写
+    package.json），是 TUI 内 `/update` 的脚本化替代；结尾 `</dev/null` 必须带：堵住
+    stdin，防 pnpm 交互确认在无 TTY 场景挂死。与 `/update` 不同，它**不走**
+    `updateTui()` 的 allowBuilds/release-age 预置，跑前自查这两项；同样吃下条补丁键
+    坑（`allowUnusedPatches: true` 已常开兜底），跑完仍按「移植手法」重做补丁。
   - ⚠️ **`/update` 会因旧补丁键整批失败**（2026-09-09 实测）：键按精确版本锁定，
     `/update` 换版本后旧键匹配不到任何依赖，pnpm 11 抛 `ERR_PNPM_UNUSED_PATCH` 中止
     **整个安装**（manifest/node_modules 保持原样，只有 `minimumReleaseAgeExclude` 被
@@ -350,6 +382,20 @@ settings.yaml，否则 TUI 冲突复发。
   「移植手法」用 `git diff --no-index` 手工生成单文件 diff（两棵树命名成 `a/`、`b/`
   即可，无需事后修前缀）→ 放进 `patches/` + 挂 `patchedDependencies`（`pnpm patch`
   只用来拿可编辑目录）。
+- **release-age 排除项：`minimumReleaseAgeExclude` 不接受版本范围**（2026-11-19 实测
+  pnpm 11.24.0）：只接受①裸包名（= 该包**所有版本**免检）②scope 通配 `@org/*`③精确
+  版本并集 `1.2.3 || 1.2.4`；写 `^` / `*` / `>=` 直接
+  `ERR_PNPM_INVALID_MINIMUM_RELEASE_AGE_EXCLUDE` 中止安装。pnpm 11 内置默认冷却 24h
+  （`minimumReleaseAge: 1440`，未显式配置也生效）；命中新鲜版本时解析阶段报
+  `ERR_PNPM_NO_MATURE_MATCHING_VERSION`，锁文件复检阶段报
+  `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`，两种情况都整批失败。本机 tui/web/
+  desktop 三个 profile 已把自有 `@tr1v3r/*` 改成 scope 通配，升级自建包**永不需要再补
+  版本号**；其余第三方包（`@deepseek-harness-tui/dsh-tui`、`@linxin666/*`、`dsh-context`
+  等）仍是精确并集，升级时按需追加。TUI 的 `ensureProfileReleaseAgeExclude` 只重写
+  `@deepseek-harness-tui/dsh-tui@…` 那一条（通配行被当 foreign 原样保留），所以 dsh-tui
+  的条目仍随 `/update` 漂移，属正常。可选 `minimumReleaseAgeExcludePrune: true`
+  （11.24.0 支持）：install/update 时自动删掉锁文件已不再解析的陈旧条目、保留注释与
+  通配，能阻止长并集继续堆垃圾，但**省不了**写新版本号。
 - ⚠️ **settings.yaml 目标是 symlink**（settings seam 会运行时改写它，
   `ui-onboarding`/`pet`/`skin-*` 等分节即其持久化状态）。改 dsh 设置可直接改
   `~/.config/dsh/settings.yaml`（热加载立即生效），变更会同步落到 chezmoi source；
@@ -374,11 +420,12 @@ settings.yaml，否则 TUI 冲突复发。
   settings writer 按内存里的旧文档回写，会重现**过时注释**（2026-09-10 实测：新写在
   `agent-default-model` 下的注释被昨天的旧注释覆盖，同时 description 被按 80 列折行）。
   改完这个分节要复查文本，别只看值。
-  ✅ **entry 层漏抄的 base 字段已补回**（2026-09-29）：dsh-tui bundle 的 llm-deepseek
-  base 是 apiKeyEnv/baseURL/thinking/**reasoningEffort: max**（0.10.2 与 0.11.2 tarball
-  均实测），profile entry 层整体替换此前只带 3 个 → base 的 max 被顶掉；现已在
-  `cordis.patch.yml.tmpl` 补 `reasoningEffort: max` 并 chezmoi apply 到 live（vanilla parity，
-  实测 live 第 88 行生效）。
+  **TUI 个人覆盖已精简（2026-11-18）**：`llm-deepseek` 仅保留
+  `maxTokens: 393216`，不再复制 bundle 的 thinking / `reasoningEffort: max`。
+  `max` 本身仍有效；本机选择让未显式指定强度的新会话跟随模型默认值。
+  同时移除个人 `agent-default-model` 覆盖和 TUI 的固定 effort，保留用户已保存的
+  `/effort` 与设置选择。TUI config 整体替换 bundle，需显式保留 preset / workspace /
+  sessionId / backend 四项启动变量映射，以及个人 vimKeys。不要恢复旧版“补抄 max”做法。
 - vimKeys 机制：本地 pnpm patch 给 `/vim` NORMAL 态加了逐动作改键（settings
   `dsh-tui.vimKeys` 分节，colemak 键位见 settings.yaml；补丁只含机制零键位）。
   上游提案 https://github.com/ccch1mneyyy/dsh-TUI/discussions/777 ，认可后提 PR
@@ -405,26 +452,11 @@ settings.yaml，否则 TUI 冲突复发。
   supportsStrictMode / zaiToolStream 两个 compat 修正——settings 的 zai 段已整段
   删除 models + 路由级 compat，只留 apiKeyEnv，整路由回落目录（不声明即用目录，
   比"只列 id 的对象列表"更全，附赠 glm-5.3-highspeed / glm-4.6v）；boot 零告警。
-- **pi-ai 目录换装（2026-09-23 起本机常态，升级 dsh 后必做）**：全局 dsh 树里的
-  `@earendil-works/pi-ai` 是模型目录的**静态快照**；TUI 的 openai-codex /
-  anthropic / xai 路由（dsh-auth 挂载）的模型列表来自它运行时解析出的这一份，
-  不联网刷新。官方路径走不通：dsh-llm-pi-ai 全部已发布版本（至 0.1.7-alpha.1）
-  都锁 pi-ai `^0.85.1`（0.x caret 不跨 minor）、dsh-auth 的 `modelOverrides`
-  缺 id 即 boot 抛错、settings 又不能声明 openai-codex（见上注册冲突坑）——
-  唯一立即生效的手段是物理替换目录：跑 `scripts/refresh-pi-ai.sh [version]`
-  （下载/预验全在临时目录完成、留 `.bak` 上一版备份、失败自动回滚、换后打印
-  各路由模型增删 diff；macOS 自带 bash 3.2 吞多字节字符，脚本里变量一律加
-  花括号）。⚠️ `npm i -g @deepseek-ai/dsh` 会整树重建、还原成 0.85.x 并删掉
-  .bak——**升级 dsh 后重跑本脚本**；`/update` 与 `dsh plugin` 只动 profile，
-  不受影响。换装后须重启会话（模型注册表 boot 时构建）。首次换装 0.85.1→
-  0.87.1：codex 路由 +gpt-6-luna/gpt-6-sol、−gpt-5.4/gpt-5.4-mini；zai 目录
-  自此自带 glm-5.3+（上一条的精简条件已满足，settings 覆盖优先、不改也无害）。
-  2026-09-29 升 engine 0.2.0-rc.1 后按上述流程重跑一次（npm i -g 已把树还原成
-  0.85.1）：0.85.1→0.87.1，模型增删与首次完全一致，`.bak-0.85.1` 已在位。
-  原理与「为什么 npm i --no-save 无效（arborist 把 0.85.1 嵌进
-  dsh-llm-pi-ai/node_modules，解析先命中旧副本）」见脚本头注释。
+- **历史 pi-ai 换装已退役（2026-11-18）**：旧版 DSH 锁定 pi-ai 0.85.x 时，
+  曾通过物理换装和目录回填补齐模型；当前已使用 1.5.2，旧脚本及其升级后重跑要求
+  已移除。模型缺失时先检查官方目录和适配器配置，再评估受支持的依赖升级。
 - ⚠️ **桌面版 pi-ai 模型列表（0.1.7-rc.2）**：app.asar 自带 pi-ai 0.85.1，
-  与 `scripts/refresh-pi-ai.sh` 换装的全局 CLI/Web 0.87.1 是两份目录；换装全局目录
+  与全局 CLI/Web 的 pi-ai 是两份目录；修改全局目录
   **不会刷新桌面目录**。桌面的 `profiles/desktop/cordis.patch.yml` 若要限定
   `openai-codex.models`，必须写对象数组（如 `- id: gpt-6-astra`），不能写裸字符串：
   `dsh-llm-pi-ai` 的 schema 要求每项有字符串 `id`，否则整个 `llm-pi-ai` 配置无效，
@@ -449,18 +481,12 @@ settings.yaml，否则 TUI 冲突复发。
     bootstrap namespace，实测返回空但域里其实已生效）；可靠验证是 `launchctl print
     gui/$(id -u)/local.dsh.home-env` 的 `inherited environment`，或 GUI 启动的会话里
     `env | grep DSH_HOME`。
-  - ⚠️ **首次部署先迁移**：`~/.dsh` 若仍是实目录，**不要直接对它 chezmoi apply**。
-    在独立终端、Cmd-Q 完全退出桌面版后，先运行
-    `bash scripts/dsh-migrate-desktop-home.sh --dry-run --link` 检查计划，再运行
-    `bash scripts/dsh-migrate-desktop-home.sh --link`。脚本仅复制缺失会话/状态；目标同名
-    文件一律保留，已有 desktop profile 与 memory 作为整体保留，不混装依赖或 SQLite。
-    然后把旧目录改名为 `~/.dsh.backup-<UTC时间>-<pid>`，保留所有冲突与凭据，再仅部署
-    `.dsh` 链接（排除 apply scripts，不覆盖整个 dsh 配置）。独立记忆库与同名会话日志
-    不自动合并，需在备份中人工审查；备份含秘密，不提交。进程查询失败时拒绝迁移。
-  - `scripts/dsh-migrate-desktop-home.sh` 默认只复制、不切换目录；`--force` 只允许预复制，
-    不能与 `--link` 同用。源/目标为同一物理目录时直接退出，链接部署后重跑安全。
-    回滚时先停 app，移开软链接并恢复备份，同时停用 chezmoi 的链接规则；仅清除
-    `DSH_HOME` 不再能回滚。登录项竞态由链接兜底，首次部署后从 Dock 手动重启 app。
+  - **本机目录迁移已完成（2026-11-18 复核）**：`~/.dsh` 已是指向
+    `~/.config/dsh` 的软链接，一次性迁移脚本及对应测试已删除。未来其他机器若仍有
+    `~/.dsh` 实目录，先退出桌面版、备份并审查两边状态，再部署链接；不要直接覆盖
+    旧目录，也不要混装 profile 依赖或合并 SQLite 数据库。已有备份与凭据不在本次
+    脚本清理范围内。回滚目录时须同时处理 chezmoi 链接规则，仅清除 `DSH_HOME`
+    不会改变默认 home 链接。
   - 桌面版对 `settings.yaml` 的态度随版本翻转：0.1.6 不读（未挂 `dsh-settings-file`）；
     **0.1.7-rc.2 起主动导入并没收**（见上方 settings.yaml 节的事故记录）。它的配置
     全部落在 `~/.config/dsh/profiles/desktop/cordis.patch.yml`。

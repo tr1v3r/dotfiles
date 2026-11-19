@@ -85,7 +85,9 @@ without root, a TTY, or package-manager network access.
 Linux validation is split by responsibility: `scripts/test_linux_containers.sh`
 tests real package bootstrap, while `scripts/test_chezmoi_containers.sh` clones a
 locked repository and tests init/apply/verify/idempotence across Ubuntu, Debian,
-and Arch. The latter enumerates effective Git attributes for every tracked file,
+and Arch (externals are pre-cloned from this machine's live external clones —
+run `chezmoi apply` once before testing). The latter enumerates effective Git
+attributes for every tracked file,
 requires each git-crypt file to be ciphertext, ignores its exact target, and must
 never deploy ciphertext. It tests committed HEAD and rejects dirty deployable
 source paths instead of silently testing stale code.

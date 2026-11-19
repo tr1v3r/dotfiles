@@ -1,7 +1,24 @@
-# Firecrawl 本地部署与 DSH MCP 接入
+# Firecrawl 本地部署与 DSH MCP 接入（停用记录）
 
-本文记录本机 Firecrawl 的 Docker Compose 部署、DSH MCP 接入、日常使用和排障方法。
+2026-11-19 停用本地 Firecrawl：移除三个 DSH profile 的 MCP 接入、Web 的 modsearch
+bundle，以及宿主机的 `firecrawl-mcp` LaunchAgent；删除对应的 7 个 Docker 容器、
+5 个数据卷和专属网络。Trae CLI 的本地 Firecrawl MCP 连接和 Kitty 的旧覆盖条目也已移除。
+对应的 6 个 Docker 镜像也已删除；恢复部署时需要重新构建或拉取镜像。
+三个 profile 的联网搜索统一使用 `deepseek-search-api`，网页抓取使用 `http`。
+
+本文保留历史部署、DSH MCP 接入、使用和排障方法，供以后主动恢复时参考。
+**下文示例不是当前启用配置，也不会在 `chezmoi apply` 时自动恢复服务。**
 所有路径使用 `~`、`$HOME` 或运行时表达式，禁止写入具体用户名。
+
+## 恢复原则
+
+需要再次使用时，先按下文启动 Docker REST API，再给所需 profile 恢复 stdio MCP 配置。
+`firecrawl-mcp` 是宿主机 Node.js 程序，负责把 MCP 调用转换成 Docker 的 REST API 请求；
+由 DSH 按需启动即可，不需要单独安装常驻服务或创建 LaunchAgent。
+曾试用 `127.0.0.1:3010/mcp` 常驻 HTTP 桥；该桥已删除，当前不监听 3010。
+
+Firecrawl 源码 checkout 保留在 `~/workspace/opensource/firecrawl`；容器数据已删除，
+恢复时会重新初始化数据库和队列。下文固定版本是历史验证记录，恢复前重新检查兼容性。
 
 ## 架构
 
@@ -21,7 +38,7 @@ DSH agent（web_search provider / read_page）
 `127.0.0.1:3002` 是 Firecrawl REST API，不是 MCP endpoint。DSH 不能直接连接
 `http://127.0.0.1:3002/mcp`，必须通过 `firecrawl-mcp` 做协议桥接。
 
-## 当前约定
+## 历史部署约定
 
 | 项目 | 值 |
 | --- | --- |
@@ -31,7 +48,7 @@ DSH agent（web_search provider / read_page）
 | Firecrawl MCP | `firecrawl-mcp@3.24.0` |
 | modsearch 引擎 | `@liustack/modsearch@5.10.1`，`firecrawl.baseURL` 指向本地 |
 | API 认证 | 本地关闭，不需要云端 API key |
-| DSH profiles | `dsh-tui`、`headless`、`web` |
+| DSH profiles | `tui`、`headless`、`web` |
 
 ## 首次部署
 
@@ -157,7 +174,8 @@ Firecrawl Cloud 账单。
 
 ## DSH MCP 配置
 
-三个 profile 的 `cordis.patch.yml` 都插入同一条插件配置：
+恢复时，仅给需要的 profile 的源文件 `cordis.patch.yml.tmpl` 插入以下配置，再精确 apply
+到对应 live 文件；不要只编辑部署后的副本。下面的 homeDir 由 chezmoi 渲染：
 
 ```yaml
 - insert:
@@ -166,7 +184,7 @@ Firecrawl Cloud 账单。
       config:
         serverName: firecrawl
         transport: stdio
-        command: npx
+        command: {{ .chezmoi.homeDir }}/.local/share/fnm/aliases/default/bin/npx
         args:
           - -y
           - firecrawl-mcp@3.24.0
@@ -181,7 +199,7 @@ Firecrawl Cloud 账单。
 涉及文件：
 
 ```text
-~/.config/dsh/profiles/dsh-tui/cordis.patch.yml
+~/.config/dsh/profiles/tui/cordis.patch.yml
 ~/.config/dsh/profiles/headless/cordis.patch.yml
 ~/.config/dsh/profiles/web/cordis.patch.yml
 ```
@@ -197,7 +215,7 @@ Firecrawl Cloud 账单。
 ### 验证组合配置
 
 ```bash
-dsh --profile dsh-tui --dump-config
+dsh --profile tui --dump-config
 dsh --profile headless --dump-config
 dsh --profile web --dump-config
 ```
@@ -211,12 +229,14 @@ dsh --profile web --dump-config
 TUI 和 Web 已运行时建议重启，以确保模型请求拿到新的工具目录；Headless 每次调用都会
 重新加载 startup patch。
 
-## modsearch 引擎接入
+## 历史 modsearch 引擎接入（已移除）
 
-`@liustack/modsearch`（web profile 已装）把本地 Firecrawl 挂为搜索/抓取引擎链的第一跳，
+`@liustack/modsearch` 曾在 Web profile 中把本地 Firecrawl 挂为搜索/抓取引擎链的第一跳，
 替代 Firecrawl Cloud 的 keyless 额度。它与 MCP 桥是**并行的两条消费者链**：MCP 提供
 `mcp__firecrawl__*` 工具，modsearch 接管 dsh 内置 `web_search` 的 provider 并新增
 `read_page`。
+
+以下只保留历史操作方法；恢复 stdio MCP 不要求重新安装 modsearch。
 
 ### 配置
 

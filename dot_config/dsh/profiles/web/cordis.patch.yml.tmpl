@@ -1,3 +1,9 @@
+# 联网搜索使用 DeepSeek Search API；网页抓取使用本地 HTTP。
+- id: web
+  config:
+    searchProvider: deepseek-search-api
+    fetchProvider: http
+
 # Your patch layer for this dsh profile, applied after every bundle layer:
 # a top-level YAML array of loader patch entries (id-targeted config
 # overrides, disables, and insert lists; `!!js` expressions allowed).
@@ -143,24 +149,6 @@
 # dsh-agent-teams 0.1.16-rc.1 曾因仅支持 Harness 0.1.2、无法安装 retired-member
 # guard 被禁用；2026-09-16 手改部署文件移除禁用，此处回填模板保持一致。
 
-- insert:
-    - id: mcp-firecrawl
-      name: '@deepseek-ai/dsh-mcp-client'
-      config:
-        serverName: firecrawl
-        transport: stdio
-        # 绝对路径：GUI/launchd 拉起的 dsh（com.dsh.doctor）PATH 里没有 fnm，裸 npx spawn 失败
-        command: {{ .chezmoi.homeDir }}/.local/share/fnm/aliases/default/bin/npx
-        args:
-          - -y
-          - firecrawl-mcp@3.24.0
-        env:
-          FIRECRAWL_API_URL: http://127.0.0.1:3002
-          NPM_CONFIG_CACHE: !!js process.env.HOME + '/.cache/dsh-npm'
-          # 默认 registry 未同步该包（3.24.0 起长期缺失），此 npx 子进程单独走公共 npm
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        toolCallTimeoutMs: 180000
-        failOnStartupError: false
 
 # ===== GLM Coding Plan (智谱) 官方 MCP =====
 # API Key 统一读环境变量 ZAI_CODING_CN_API_KEY（~/.config/secrets/api-keys.env 导出，

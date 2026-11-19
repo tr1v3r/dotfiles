@@ -13,6 +13,7 @@ require("starship"):setup({
 	config_file = "~/.config/yazi/starship.toml",
 })
 require("full-border"):setup({ type = ui.Border.ROUNDED })
+require("agent-tui"):setup({ profile = "tui" })
 
 -- CLI Pointer：绕过内建 indicator 的 reversed 背景和两侧 powerline padding，
 -- 只保留无背景指针与层级色：当前项 cyan；父目录路径锚点用亮前景、blue 指针。

@@ -1,6 +1,6 @@
 # Managed by chezmoi. Put machine-specific SSH settings in config.local.
+Include ~/.config/ssh/config
 Include ~/.ssh/config.local
 {{ if eq .chezmoi.os "darwin" -}}
 Include ~/.orbstack/ssh/config
 {{ end -}}
-Include ~/.config/ssh/config
