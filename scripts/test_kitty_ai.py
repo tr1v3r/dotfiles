@@ -377,7 +377,10 @@ class OpenChatTests(OfflineTestCase):
         self.addCleanup(appending.stop)
 
     def test_launch_uses_normal_tui_with_patch_and_no_preference_isolation(self):
-        self.assertEqual(ai.LAUNCH_SCRIPT, 'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml"')
+        self.assertEqual(ai.LAUNCH_SCRIPT, (
+            'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml" '
+            '2> >(python3 "$HOME/.config/kitty/ai_chat.py" filter-stderr)'
+        ))
         self.assertNotIn("$1", ai.LAUNCH_SCRIPT)
         for removed in ("NODE_OPTIONS", "KITTY_AI_PREFS_DIR", "ai_tui_", "DSH_TUI_BACKEND"):
             self.assertNotIn(removed, ai.LAUNCH_SCRIPT)
@@ -682,6 +685,63 @@ class MainSourceTests(OfflineTestCase):
                 self.assertEqual(ai.main(), 1)
             report.assert_called_once()
             stdin.buffer.read.assert_not_called()
+
+
+class ElectronStderrTests(unittest.TestCase):
+    WARNING = (
+        b"[1119/140550.035998:ERROR:electron/shell/common/mac/codesign_util.cc:79] "
+        b"task_name_for_pid: (os/kern) failure (5)"
+    )
+
+    def test_filter_keeps_real_errors_and_non_utf8_bytes(self):
+        errors = b"Error: profile missing\nFatal: \xff\n"
+        output = io.BytesIO()
+        ai.filter_electron_stderr(io.BytesIO(self.WARNING + b"\n" + errors), output)
+        self.assertEqual(output.getvalue(), errors)
+
+    def test_filter_preserves_similar_but_different_diagnostics(self):
+        lines = [
+            b"prefix: " + self.WARNING + b"\n",
+            self.WARNING.replace(b"failure (5)", b"failure (2)") + b"\n",
+            self.WARNING + b" extra details\n",
+        ]
+        output = io.BytesIO()
+        ai.filter_electron_stderr(io.BytesIO(b"".join(lines)), output)
+        self.assertEqual(output.getvalue(), b"".join(lines))
+
+    def test_unterminated_prompt_passes_before_next_read(self):
+        output = io.BytesIO()
+
+        class LiveSource:
+            read = None
+            count = 0
+
+            def read1(self, size):
+                self.count += 1
+                if self.count == 1:
+                    return b"Continue? [y/N] "
+                self_test.assertEqual(output.getvalue(), b"Continue? [y/N] ")
+                return b""
+
+        self_test = self
+        ai.filter_electron_stderr(LiveSource(), output)
+
+    def test_warning_split_across_reads_is_filtered(self):
+        output = io.BytesIO()
+        source = mock.Mock()
+        source.read1.side_effect = [bytes([c]) for c in self.WARNING + b"\nerror"] + [b""]
+        ai.filter_electron_stderr(source, output)
+        self.assertEqual(output.getvalue(), b"error")
+
+    def test_filter_cli_needs_no_kitty_window(self):
+        output = io.BytesIO()
+        with mock.patch.object(ai.sys, "argv", ["ai_chat.py", "filter-stderr"]), \
+                mock.patch.object(ai.sys, "stdin", SimpleNamespace(buffer=io.BytesIO(self.WARNING + b"\r\nerror"))), \
+                mock.patch.object(ai.sys, "stderr", SimpleNamespace(buffer=output)), \
+                mock.patch.object(ai, "open_chat") as opened:
+            self.assertEqual(ai.main(), 0)
+        self.assertEqual(output.getvalue(), b"error")
+        opened.assert_not_called()
 
 
 if __name__ == "__main__":

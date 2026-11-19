@@ -18,7 +18,50 @@ import time
 
 MAX_CONTEXT_BYTES = 48_000
 WINDOW_VAR = "kitty_ai_chat"
-LAUNCH_SCRIPT = 'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml"'
+LAUNCH_SCRIPT = (
+    'exec dsh --profile tui --patch "$HOME/.config/kitty/ai.patch.yml" '
+    '2> >(python3 "$HOME/.config/kitty/ai_chat.py" filter-stderr)'
+)
+# Electron's Node-mode parent inspection can fail while DSH starts normally.
+# Match only this diagnostic; preserve all other stderr, including fatal errors.
+ELECTRON_PARENT_WARNING = (
+    b"[####/######.######:ERROR:electron/shell/common/mac/codesign_util.cc:79] "
+    b"task_name_for_pid: (os/kern) failure (5)"
+)
+
+
+def filter_electron_stderr(source, destination):
+    # Buffer only a possible copy of the known line. Prompts without a newline,
+    # ANSI sequences and arbitrary bytes must pass through without waiting for EOF.
+    pending = bytearray()
+    passthrough = False
+    read = getattr(source, "read1", source.read)
+    while chunk := read(4096):
+        output = bytearray()
+        for value in chunk:
+            if passthrough:
+                output.append(value)
+                passthrough = value != 10
+                continue
+            pending.append(value)
+            matches = all(
+                48 <= actual <= 57 if expected == 35 else actual == expected
+                for actual, expected in zip(pending, ELECTRON_PARENT_WARNING)
+            )
+            suffix = bytes(pending[len(ELECTRON_PARENT_WARNING):])
+            if matches and suffix in (b"", b"\r", b"\n", b"\r\n"):
+                if value == 10:
+                    pending.clear()
+            else:
+                output.extend(pending)
+                pending.clear()
+                passthrough = value != 10
+        if output:
+            destination.write(output)
+            destination.flush()
+    if pending and len(pending) < len(ELECTRON_PARENT_WARNING):
+        destination.write(pending)
+        destination.flush()
 
 
 def cache_dir():
@@ -214,6 +257,9 @@ def report_error(error, source_id):
 
 
 def main():
+    if sys.argv[1:] == ["filter-stderr"]:
+        filter_electron_stderr(sys.stdin.buffer, sys.stderr.buffer)
+        return 0
     # Background children have no KITTY_WINDOW_ID. kitty expands the launch
     # argument @active-kitty-window-id before spawning the helper.
     source_id = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("KITTY_WINDOW_ID", "")
